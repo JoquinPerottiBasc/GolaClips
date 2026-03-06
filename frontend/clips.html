@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GolaClips - Tus clips</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>⚡ GolaClips</h1>
+      <a href="index.html" class="btn-secondary">+ Nuevo video</a>
+    </header>
+
+    <main>
+      <div id="processing-state" class="state-panel">
+        <div class="spinner"></div>
+        <h2>Analizando tu video</h2>
+        <p id="status-text" class="status-text">Detectando momentos emocionantes...</p>
+        <div class="progress-bar-container">
+          <div id="status-bar" class="progress-bar" style="width: 0%"></div>
+        </div>
+      </div>
+
+      <div id="results-state" class="state-panel hidden">
+        <div class="results-header">
+          <div>
+            <h2>Clips generados</h2>
+            <p id="clips-count" class="clips-count"></p>
+          </div>
+          <div class="sort-toggle">
+            <button id="sort-time" class="sort-btn active" onclick="setSort('time')">Por tiempo</button>
+            <button id="sort-score" class="sort-btn" onclick="setSort('score')">Por puntuación</button>
+          </div>
+        </div>
+        <div id="clips-grid" class="clips-grid"></div>
+      </div>
+
+      <div id="error-state" class="state-panel hidden">
+        <div class="error-icon">❌</div>
+        <h2>Algo salió mal</h2>
+        <p id="error-detail" class="status-text"></p>
+        <a href="index.html" class="btn-primary">Intentar de nuevo</a>
+      </div>
+    </main>
+  </div>
+
+  <script src="clips.js"></script>
+</body>
+</html>
