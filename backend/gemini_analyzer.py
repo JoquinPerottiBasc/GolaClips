@@ -16,7 +16,7 @@ import mimetypes
 from google import genai
 from google.genai import types
 
-from prompts import build_detect_moments_prompt
+from prompts import build_detect_moments_prompt, build_short_pass_prompt
 
 GEMINI_MODEL = "gemini-3.1-pro-preview"
 
@@ -91,6 +91,19 @@ def _validate_moments(moments: list[dict], video_duration: float, max_clips: int
     return valid[:max_clips]
 
 
+def _merge_moments(pass1: list[dict], pass2: list[dict]) -> list[dict]:
+    """Add pass2 moments that don't overlap with any pass1 clip."""
+    merged = list(pass1)
+    for m in pass2:
+        overlaps = any(
+            m["start_sec"] < ex["end_sec"] and ex["start_sec"] < m["end_sec"]
+            for ex in pass1
+        )
+        if not overlaps:
+            merged.append(m)
+    return sorted(merged, key=lambda x: x["start_sec"])
+
+
 def analyze_video(
     video_path: str,
     video_duration: float,
@@ -114,6 +127,7 @@ def analyze_video(
     video_file = _upload_and_wait(client, video_path, status_callback)
 
     try:
+        # Pass 1: find all clips
         status_callback("gemini_analyzing")
         response = client.models.generate_content(
             model=GEMINI_MODEL,
@@ -123,8 +137,27 @@ def analyze_video(
                 max_output_tokens=8192,
             ),
         )
-        moments = _parse_moments(response.text)
-        return _validate_moments(moments, video_duration, max_clips)
+        moments = _validate_moments(_parse_moments(response.text), video_duration, max_clips)
+
+        # Pass 2: find short clips in the gaps left by pass 1
+        if moments:
+            status_callback("gemini_short_pass")
+            short_prompt = build_short_pass_prompt(moments, video_duration)
+            try:
+                response2 = client.models.generate_content(
+                    model=GEMINI_MODEL,
+                    contents=[video_file, short_prompt],
+                    config=types.GenerateContentConfig(
+                        temperature=0.2,
+                        max_output_tokens=4096,
+                    ),
+                )
+                short_moments = _validate_moments(_parse_moments(response2.text), video_duration, 10)
+                moments = _merge_moments(moments, short_moments)
+            except Exception:
+                pass  # if pass 2 fails, keep pass 1 results
+
+        return moments
 
     finally:
         try:

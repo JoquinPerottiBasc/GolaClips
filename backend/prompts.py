@@ -1,3 +1,36 @@
+def build_short_pass_prompt(existing_moments: list[dict], video_duration: float) -> str:
+    """Prompt for the second pass: find short clips in gaps left by pass 1."""
+    covered = "\n".join(
+        f"- {m['start_sec']}s to {m['end_sec']}s" for m in existing_moments
+    )
+    return f"""You are analyzing an action sports video recorded with a GoPro or action camera.
+
+A first analysis already found these clips — do NOT return them or anything overlapping:
+{covered}
+
+Your job: find SHORT moments (5 to 30 seconds) anywhere in the video that were NOT covered above.
+Be generous — include anything briefly interesting, funny, or worth watching that was missed.
+
+Return ONLY a raw JSON array, nothing else:
+[
+  {{
+    "start_sec": 0.0,
+    "end_sec": 0.0,
+    "score": 0,
+    "description": "description in English"
+  }}
+]
+
+Rules:
+- Only return clips that do NOT overlap with the existing clips listed above
+- Each clip between 5 and 30 seconds
+- No overlapping clips with each other
+- Sorted by start_sec
+- Score 1-10
+- If nothing new is found, return an empty array: []
+"""
+
+
 def build_detect_moments_prompt(
     duration_min: int,
     duration_max: int,

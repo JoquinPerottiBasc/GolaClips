@@ -22,6 +22,7 @@ const STATUS_MESSAGES = {
   uploading_to_gemini: 'Subiendo video a Gemini...',
   gemini_processing: 'Gemini está procesando el video...',
   gemini_analyzing: 'Gemini detectando momentos emocionantes...',
+  gemini_short_pass: 'Buscando clips cortos perdidos...',
   cutting_clips: 'Cortando clips del video original...',
   done: 'Listo',
   error: 'Error',
@@ -32,7 +33,8 @@ const STATUS_PROGRESS = {
   compressing: 12,
   uploading_to_gemini: 28,
   gemini_processing: 50,
-  gemini_analyzing: 75,
+  gemini_analyzing: 72,
+  gemini_short_pass: 82,
   cutting_clips: 90,
   done: 100,
 };
