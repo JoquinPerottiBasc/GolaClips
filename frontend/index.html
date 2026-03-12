@@ -15,6 +15,11 @@
         <h1>⚡ GolaClips</h1>
         <p class="tagline">Subí tus videos de deportes. La IA encuentra los mejores momentos.</p>
       </div>
+      <div class="header-user hidden" id="header-user">
+        <img id="user-avatar" class="user-avatar" src="" alt="" onerror="this.style.display='none'">
+        <span id="user-name" class="user-name"></span>
+        <button class="btn-logout" onclick="signOut()">Salir</button>
+      </div>
     </header>
 
     <main>
@@ -91,9 +96,20 @@
       <div id="error-msg" class="error-msg hidden"></div>
 
       <div id="jobs-section" class="jobs-section hidden"></div>
+
+      <!-- History section -->
+      <div id="history-section" class="history-section hidden">
+        <div class="history-header">
+          <h2 class="history-title">Tus clips anteriores</h2>
+        </div>
+        <div id="history-list" class="history-list"></div>
+      </div>
     </main>
   </div>
 
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="firebase-config.js"></script>
   <script src="upload.js"></script>
 </body>
 </html>

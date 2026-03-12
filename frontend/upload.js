@@ -8,6 +8,8 @@ const fileListEl = document.getElementById('file-list');
 const jobsSection = document.getElementById('jobs-section');
 const errorMsg = document.getElementById('error-msg');
 const btnAnalizar = document.getElementById('btn-analizar');
+const historySection = document.getElementById('history-section');
+const historyList = document.getElementById('history-list');
 
 const DURATION_MAP = {
   short:  { min: 10, max: 30 },
@@ -39,6 +41,7 @@ const STATUS_PROGRESS = {
 const VIDEO_EXTENSIONS = ['mp4', 'mov', 'avi', 'mkv', 'webm', 'wmv', 'flv', 'ts', 'mts'];
 
 let selectedFiles = [];
+let _currentUser = null;
 
 // Version counter per clip for cache-busting after extend
 const _clipVersions = {};
@@ -48,6 +51,117 @@ function getClipVersion(jobId, filename) {
 function bumpClipVersion(jobId, filename) {
   const key = `${jobId}/${filename}`;
   _clipVersions[key] = (_clipVersions[key] || 0) + 1;
+}
+
+// --- Auth ---
+async function getToken() {
+  const user = firebase.auth().currentUser;
+  if (!user) return null;
+  return user.getIdToken();
+}
+
+function signOut() {
+  firebase.auth().signOut().then(() => {
+    window.location.href = 'login.html';
+  });
+}
+
+// Auth state observer — redirect to login if not signed in
+firebase.auth().onAuthStateChanged(async (user) => {
+  if (!user) {
+    window.location.href = 'login.html';
+    return;
+  }
+  _currentUser = user;
+
+  // Show user info in header
+  const headerUser = document.getElementById('header-user');
+  const userAvatar = document.getElementById('user-avatar');
+  const userName = document.getElementById('user-name');
+  if (headerUser) {
+    headerUser.classList.remove('hidden');
+    if (user.photoURL) userAvatar.src = user.photoURL;
+    userName.textContent = user.displayName || user.email;
+  }
+
+  // Load history
+  loadHistory();
+});
+
+// --- History ---
+async function loadHistory() {
+  try {
+    const token = await getToken();
+    const res = await fetch(`${API_BASE}/api/me/history`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) return;
+    const jobs = await res.json();
+
+    if (!jobs.length) return;
+
+    historySection.classList.remove('hidden');
+    historyList.innerHTML = '';
+
+    jobs.forEach(job => renderHistoryJob(job));
+  } catch (e) {
+    console.warn('Could not load history:', e);
+  }
+}
+
+function renderHistoryJob(job) {
+  const date = new Date(job.created_at + 'Z').toLocaleDateString('es-AR', {
+    day: '2-digit', month: '2-digit', year: 'numeric',
+  });
+  const expires = new Date(job.expires_at + 'Z');
+  const expired = expires < new Date();
+
+  const card = document.createElement('div');
+  card.className = 'history-card';
+  card.innerHTML = `
+    <div class="history-card-header">
+      <div class="history-card-meta">
+        <span class="history-filename">${job.original_filename}</span>
+        <span class="history-date">${date}</span>
+      </div>
+      <div class="history-card-right">
+        ${expired
+          ? '<span class="history-badge expired">Expirado</span>'
+          : `<span class="history-badge">${job.clips.length} clip${job.clips.length !== 1 ? 's' : ''}</span>`
+        }
+        ${!expired ? `<button class="history-toggle-btn" onclick="toggleHistoryClips(this)">Ver clips</button>` : ''}
+      </div>
+    </div>
+    ${!expired && job.clips.length ? `
+      <div class="history-clips-grid hidden">
+        ${job.clips.map((clip, i) => `
+          <div class="clip-card">
+            <video class="clip-video" controls preload="none">
+              <source src="${clip.url}" type="video/mp4">
+            </video>
+            <div class="clip-info">
+              <div class="clip-info-left">
+                <div class="clip-label-row">
+                  <span class="clip-label">Clip ${i + 1}</span>
+                  <span class="clip-score">★ ${clip.score || 5}/10</span>
+                </div>
+                ${clip.description ? `<div class="clip-desc visible">${clip.description}</div>` : ''}
+                <div class="clip-time">${formatTime(clip.start)} – ${formatTime(clip.end)}</div>
+              </div>
+              <a class="btn-download" href="${clip.url}" download="${clip.filename}">↓ Descargar</a>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    ` : ''}
+  `;
+  historyList.appendChild(card);
+}
+
+function toggleHistoryClips(btn) {
+  const grid = btn.closest('.history-card').querySelector('.history-clips-grid');
+  const open = grid.classList.toggle('hidden');
+  btn.textContent = open ? 'Ver clips' : 'Ocultar';
 }
 
 // --- Drag & drop ---
@@ -153,6 +267,13 @@ async function submitAll() {
 }
 
 async function submitFile(file, durationMin, durationMax, numClips, customPrompt) {
+  // Get fresh auth token before starting upload
+  const token = await getToken();
+  if (!token) {
+    window.location.href = 'login.html';
+    return;
+  }
+
   // Create job card
   const card = document.createElement('div');
   card.className = 'job-card';
@@ -176,7 +297,7 @@ async function submitFile(file, durationMin, durationMax, numClips, customPrompt
   const jobBadge = card.querySelector('.job-badge');
   const jobClips = card.querySelector('.job-clips');
 
-  // Upload
+  // Upload via XHR to track progress
   const formData = new FormData();
   formData.append('file', file);
   formData.append('duration_min', durationMin);
@@ -210,6 +331,7 @@ async function submitFile(file, durationMin, durationMax, numClips, customPrompt
       resolve(null);
     });
     xhr.open('POST', `${API_BASE}/api/upload`);
+    xhr.setRequestHeader('Authorization', `Bearer ${token}`);
     xhr.send(formData);
   });
 
@@ -220,7 +342,7 @@ async function submitFile(file, durationMin, durationMax, numClips, customPrompt
 }
 
 // --- Polling ---
-function pollJob(jobId, progressBar, progressText, jobBadge, jobClips) {
+async function pollJob(jobId, progressBar, progressText, jobBadge, jobClips) {
   async function check() {
     try {
       const res = await fetch(`${API_BASE}/api/status/${jobId}`);
@@ -238,6 +360,8 @@ function pollJob(jobId, progressBar, progressText, jobBadge, jobClips) {
         const n = data.clips.length;
         progressText.textContent = `${n} clip${n !== 1 ? 's' : ''} encontrado${n !== 1 ? 's' : ''}`;
         renderInlineClips(jobId, data.clips, jobClips);
+        // Refresh history to include this new job
+        loadHistory();
       } else if (data.status === 'error') {
         jobBadge.className = 'job-badge error';
         progressText.textContent = data.error || 'Error desconocido';
@@ -282,30 +406,33 @@ function renderInlineGrid(jobId) {
   const sorted = [...clips].sort((a, b) =>
     mode === 'score' ? (b.score || 5) - (a.score || 5) : a.start - b.start
   );
-  document.getElementById(`clips-grid-${jobId}`).innerHTML = sorted.map((clip, i) => `
-    <div class="clip-card">
-      <video class="clip-video" controls preload="metadata">
-        <source src="${API_BASE}/clips/${jobId}/${clip.filename}?v=${getClipVersion(jobId, clip.filename)}" type="video/mp4">
-      </video>
-      <div class="clip-info">
-        <div class="clip-info-left">
-          <div class="clip-label-row">
-            <span class="clip-label">Clip ${i + 1}</span>
-            <span class="clip-score">★ ${clip.score || 5}/10</span>
+  document.getElementById(`clips-grid-${jobId}`).innerHTML = sorted.map((clip, i) => {
+    const srcUrl = clip.url || `${API_BASE}/clips/${jobId}/${clip.filename}?v=${getClipVersion(jobId, clip.filename)}`;
+    return `
+      <div class="clip-card">
+        <video class="clip-video" controls preload="metadata">
+          <source src="${srcUrl}" type="video/mp4">
+        </video>
+        <div class="clip-info">
+          <div class="clip-info-left">
+            <div class="clip-label-row">
+              <span class="clip-label">Clip ${i + 1}</span>
+              <span class="clip-score">★ ${clip.score || 5}/10</span>
+            </div>
+            ${clip.description ? `
+            <div class="clip-desc" id="idesc-${jobId}-${i}">${clip.description}</div>
+            <button class="btn-ver-mas" onclick="toggleInlineDesc('${jobId}', ${i}, this)">ver más</button>` : ''}
+            <div class="clip-time">${formatTime(clip.start)} – ${formatTime(clip.end)}</div>
+            <div class="extend-controls">
+              <button class="btn-extend" onclick="extendClip(event,'${jobId}','${clip.filename}',5,0)">← +5s</button>
+              <button class="btn-extend btn-extend-end" onclick="extendClip(event,'${jobId}','${clip.filename}',0,5)">+5s →</button>
+            </div>
           </div>
-          ${clip.description ? `
-          <div class="clip-desc" id="idesc-${jobId}-${i}">${clip.description}</div>
-          <button class="btn-ver-mas" onclick="toggleInlineDesc('${jobId}', ${i}, this)">ver más</button>` : ''}
-          <div class="clip-time">${formatTime(clip.start)} – ${formatTime(clip.end)}</div>
-          <div class="extend-controls">
-            <button class="btn-extend" onclick="extendClip(event,'${jobId}','${clip.filename}',5,0)">← +5s</button>
-            <button class="btn-extend btn-extend-end" onclick="extendClip(event,'${jobId}','${clip.filename}',0,5)">+5s →</button>
-          </div>
+          <a class="btn-download" href="${srcUrl}" download="${clip.filename}">↓ Descargar</a>
         </div>
-        <a class="btn-download" href="${API_BASE}/clips/${jobId}/${clip.filename}?v=${getClipVersion(jobId, clip.filename)}" download="${clip.filename}">↓ Descargar</a>
       </div>
-    </div>
-  `).join('');
+    `;
+  }).join('');
 }
 
 function toggleInlineDesc(jobId, i, btn) {
@@ -319,7 +446,6 @@ async function extendClip(event, jobId, filename, addStart, addEnd) {
   const btn = event.currentTarget;
   const card = btn.closest('.clip-card');
 
-  // Disable all extend buttons on this card and show loading overlay
   const extendBtns = card.querySelectorAll('.btn-extend');
   extendBtns.forEach(b => b.disabled = true);
   card.classList.add('clip-loading');
@@ -338,7 +464,6 @@ async function extendClip(event, jobId, filename, addStart, addEnd) {
     if (!res.ok) throw new Error('Error al extender');
     const data = await res.json();
 
-    // Update clip data in memory
     const clips = window[`_clips_${jobId}`];
     const clip = clips.find(c => c.filename === filename);
     if (clip) {
@@ -349,7 +474,6 @@ async function extendClip(event, jobId, filename, addStart, addEnd) {
     bumpClipVersion(jobId, filename);
     const newSrc = `${API_BASE}/clips/${jobId}/${filename}?v=${getClipVersion(jobId, filename)}`;
 
-    // Update only this card in-place — no full grid re-render
     const sourceEl = card.querySelector('.clip-video source');
     const videoEl  = card.querySelector('.clip-video');
     const timeEl   = card.querySelector('.clip-time');

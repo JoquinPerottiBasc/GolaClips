@@ -48,6 +48,22 @@ function formatTime(seconds) {
 let allClips = [];
 let sortMode = 'time';
 
+function signOut() {
+  firebase.auth().signOut().then(() => {
+    window.location.href = 'login.html';
+  });
+}
+
+// Show logout button when auth is ready
+firebase.auth().onAuthStateChanged(user => {
+  if (!user) {
+    window.location.href = 'login.html';
+    return;
+  }
+  const logoutBtn = document.getElementById('btn-logout-clips');
+  if (logoutBtn) logoutBtn.style.display = '';
+});
+
 function setSort(mode) {
   sortMode = mode;
   document.getElementById('sort-time').classList.toggle('active', mode === 'time');
@@ -60,28 +76,31 @@ function renderClips() {
     sortMode === 'score' ? (b.score || 5) - (a.score || 5) : a.start - b.start
   );
 
-  clipsGrid.innerHTML = sorted.map((clip, i) => `
-    <div class="clip-card">
-      <video class="clip-video" controls preload="metadata">
-        <source src="${API_BASE}/clips/${jobId}/${clip.filename}" type="video/mp4">
-      </video>
-      <div class="clip-info">
-        <div class="clip-info-left">
-          <div class="clip-label-row">
-            <span class="clip-label">Clip ${i + 1}</span>
-            <span class="clip-score">★ ${clip.score || 5}/10</span>
+  clipsGrid.innerHTML = sorted.map((clip, i) => {
+    const srcUrl = clip.url || `${API_BASE}/clips/${jobId}/${clip.filename}`;
+    return `
+      <div class="clip-card">
+        <video class="clip-video" controls preload="metadata">
+          <source src="${srcUrl}" type="video/mp4">
+        </video>
+        <div class="clip-info">
+          <div class="clip-info-left">
+            <div class="clip-label-row">
+              <span class="clip-label">Clip ${i + 1}</span>
+              <span class="clip-score">★ ${clip.score || 5}/10</span>
+            </div>
+            ${clip.description ? `
+            <div class="clip-desc" id="desc-${i}">${clip.description}</div>
+            <button class="btn-ver-mas" onclick="toggleDesc(${i}, this)">ver más</button>` : ''}
+            <div class="clip-time">${formatTime(clip.start)} – ${formatTime(clip.end)}</div>
           </div>
-          ${clip.description ? `
-          <div class="clip-desc" id="desc-${i}">${clip.description}</div>
-          <button class="btn-ver-mas" onclick="toggleDesc(${i}, this)">ver más</button>` : ''}
-          <div class="clip-time">${formatTime(clip.start)} – ${formatTime(clip.end)}</div>
+          <a class="btn-download" href="${srcUrl}" download="${clip.filename}">
+            ↓ Descargar
+          </a>
         </div>
-        <a class="btn-download" href="${API_BASE}/clips/${jobId}/${clip.filename}" download="${clip.filename}">
-          ↓ Descargar
-        </a>
       </div>
-    </div>
-  `).join('');
+    `;
+  }).join('');
 }
 
 function showResults(clips) {

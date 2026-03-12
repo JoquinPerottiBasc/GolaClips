@@ -919,3 +919,246 @@ header h1 {
   opacity: 0.3;
   cursor: not-allowed;
 }
+
+/* ─── Login page ──────────────────────────────────── */
+
+.login-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1rem;
+}
+
+.login-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  padding: 3rem 2.5rem;
+  text-align: center;
+  max-width: 400px;
+  width: 100%;
+  box-shadow: 0 0 60px rgba(124, 58, 237, 0.08);
+}
+
+.login-logo {
+  font-size: 2rem;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  background: var(--gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 0.75rem;
+}
+
+.login-tagline {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  line-height: 1.6;
+  margin-bottom: 2.25rem;
+}
+
+.btn-google {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.65rem;
+  background: white;
+  color: #1f1f1f;
+  border: none;
+  border-radius: 12px;
+  padding: 0.75rem 1.75rem;
+  font-size: 0.925rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.2s;
+  width: 100%;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.2);
+}
+
+.btn-google:hover:not(:disabled) {
+  background: #f5f5f5;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+  transform: translateY(-1px);
+}
+
+.btn-google:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.login-error {
+  margin-top: 1rem;
+  color: var(--error);
+  font-size: 0.82rem;
+  background: var(--error-glow);
+  border: 1px solid rgba(244, 63, 94, 0.2);
+  border-radius: 8px;
+  padding: 0.6rem 0.85rem;
+}
+
+/* ─── Header user info ────────────────────────────── */
+
+.header-user {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-shrink: 0;
+}
+
+.user-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1.5px solid var(--border-hover);
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.user-name {
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  max-width: 130px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.btn-logout {
+  background: transparent;
+  border: 1px solid var(--border-hover);
+  color: var(--text-dim);
+  padding: 0.35rem 0.75rem;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.btn-logout:hover {
+  border-color: var(--error);
+  color: var(--error);
+  background: var(--error-glow);
+}
+
+/* ─── History section ─────────────────────────────── */
+
+.history-section {
+  margin-top: 3rem;
+  padding-top: 2.5rem;
+  border-top: 1px solid var(--border);
+}
+
+.history-header {
+  margin-bottom: 1.25rem;
+}
+
+.history-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: -0.2px;
+}
+
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.history-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+  transition: border-color 0.2s;
+}
+
+.history-card:hover {
+  border-color: var(--border-hover);
+}
+
+.history-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.85rem 1.1rem;
+}
+
+.history-card-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.history-filename {
+  font-size: 0.875rem;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.history-date {
+  font-size: 0.72rem;
+  color: var(--text-dim);
+}
+
+.history-card-right {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex-shrink: 0;
+}
+
+.history-badge {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--success);
+  background: var(--success-glow);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  padding: 0.2rem 0.6rem;
+  border-radius: 99px;
+  white-space: nowrap;
+}
+
+.history-badge.expired {
+  color: var(--text-dim);
+  background: transparent;
+  border-color: var(--border);
+}
+
+.history-toggle-btn {
+  background: transparent;
+  border: 1px solid var(--border-hover);
+  color: var(--text-muted);
+  padding: 0.3rem 0.75rem;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.history-toggle-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-glow-soft);
+}
+
+.history-clips-grid {
+  padding: 1rem;
+  border-top: 1px solid var(--border);
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 1rem;
+}

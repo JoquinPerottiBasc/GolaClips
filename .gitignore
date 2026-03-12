@@ -16,6 +16,9 @@ __pycache__/
 *.pyc
 *.pyo
 
+# SQLite database (contains user data)
+backend/golaclips.db
+
 # Logs
 *.log
 
