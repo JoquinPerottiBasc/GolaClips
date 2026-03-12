@@ -317,9 +317,17 @@ function toggleInlineDesc(jobId, i, btn) {
 // --- Extend clip ---
 async function extendClip(event, jobId, filename, addStart, addEnd) {
   const btn = event.currentTarget;
-  const orig = btn.textContent;
-  btn.disabled = true;
-  btn.textContent = '...';
+  const card = btn.closest('.clip-card');
+
+  // Disable all extend buttons on this card and show loading overlay
+  const extendBtns = card.querySelectorAll('.btn-extend');
+  extendBtns.forEach(b => b.disabled = true);
+  card.classList.add('clip-loading');
+
+  const overlay = document.createElement('div');
+  overlay.className = 'clip-extend-overlay';
+  overlay.innerHTML = '<div class="clip-extend-spinner"></div>';
+  card.appendChild(overlay);
 
   try {
     const res = await fetch(`${API_BASE}/api/clips/${jobId}/${filename}/extend`, {
@@ -330,6 +338,7 @@ async function extendClip(event, jobId, filename, addStart, addEnd) {
     if (!res.ok) throw new Error('Error al extender');
     const data = await res.json();
 
+    // Update clip data in memory
     const clips = window[`_clips_${jobId}`];
     const clip = clips.find(c => c.filename === filename);
     if (clip) {
@@ -338,10 +347,24 @@ async function extendClip(event, jobId, filename, addStart, addEnd) {
     }
 
     bumpClipVersion(jobId, filename);
-    renderInlineGrid(jobId);
+    const newSrc = `${API_BASE}/clips/${jobId}/${filename}?v=${getClipVersion(jobId, filename)}`;
+
+    // Update only this card in-place — no full grid re-render
+    const sourceEl = card.querySelector('.clip-video source');
+    const videoEl  = card.querySelector('.clip-video');
+    const timeEl   = card.querySelector('.clip-time');
+    const dlLink   = card.querySelector('.btn-download');
+
+    if (sourceEl) sourceEl.src = newSrc;
+    if (videoEl)  videoEl.load();
+    if (timeEl && clip) timeEl.textContent = `${formatTime(clip.start)} – ${formatTime(clip.end)}`;
+    if (dlLink)   dlLink.href = newSrc;
+
   } catch (err) {
     console.error('extend error:', err);
-    btn.disabled = false;
-    btn.textContent = orig;
+  } finally {
+    card.classList.remove('clip-loading');
+    overlay.remove();
+    extendBtns.forEach(b => b.disabled = false);
   }
 }
