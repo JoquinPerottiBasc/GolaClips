@@ -10,17 +10,21 @@
   <div class="container">
     <header>
       <h1>⚡ GolaClips</h1>
-      <p class="tagline">Subí tu video de deportes. La IA encuentra los mejores momentos.</p>
+      <p class="tagline">Subí tus videos de deportes. La IA encuentra los mejores momentos.</p>
     </header>
 
     <main>
       <div id="upload-area" class="upload-area">
         <div class="upload-icon">🎬</div>
-        <p class="upload-text">Arrastrá tu video acá</p>
+        <p class="upload-text">Arrastrá tus videos acá</p>
         <p class="upload-sub">o</p>
-        <button class="btn-primary" id="btn-elegir">Elegir archivo</button>
-        <input type="file" id="file-input" accept="video/*" hidden>
-        <p class="upload-hint">MP4, MOV, AVI, MKV</p>
+        <button class="btn-primary" id="btn-elegir">Elegir archivos</button>
+        <input type="file" id="file-input" accept="video/*" multiple hidden>
+        <p class="upload-hint">MP4, MOV, AVI, MKV · Podés seleccionar varios a la vez</p>
+      </div>
+
+      <div id="file-list-section" class="hidden">
+        <div id="file-list"></div>
       </div>
 
       <div id="options-area" class="options-area hidden">
@@ -77,21 +81,12 @@
           ></textarea>
         </div>
 
-        <button class="btn-primary btn-analyze" id="btn-analizar">Analizar video ⚡</button>
-      </div>
-
-      <div id="progress-area" class="progress-area hidden">
-        <div class="file-info">
-          <span id="file-name" class="file-name"></span>
-          <span id="file-size" class="file-size"></span>
-        </div>
-        <div class="progress-bar-container">
-          <div id="progress-bar" class="progress-bar"></div>
-        </div>
-        <p id="progress-text" class="progress-text">Subiendo...</p>
+        <button class="btn-primary btn-analyze" id="btn-analizar">Analizar ⚡</button>
       </div>
 
       <div id="error-msg" class="error-msg hidden"></div>
+
+      <div id="jobs-section" class="jobs-section hidden"></div>
     </main>
   </div>
 

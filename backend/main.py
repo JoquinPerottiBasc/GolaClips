@@ -1,6 +1,6 @@
 import os
 import uuid
-import threading
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from contextlib import asynccontextmanager
 
@@ -18,6 +18,9 @@ UPLOADS_DIR.mkdir(exist_ok=True)
 CLIPS_DIR.mkdir(exist_ok=True)
 
 jobs: dict[str, dict] = {}
+
+# max_workers=1 guarantees jobs are processed one at a time
+_executor = ThreadPoolExecutor(max_workers=1)
 
 
 @asynccontextmanager
@@ -95,13 +98,8 @@ async def upload_video(
 
     jobs[job_id] = {"status": "queued", "clips": [], "error": None}
 
-    t = threading.Thread(
-        target=run_processing,
-        args=(job_id, str(video_path), api_key, openai_api_key,
-              duration_min, duration_max, num_clips, custom_prompt),
-        daemon=True,
-    )
-    t.start()
+    _executor.submit(run_processing, job_id, str(video_path), api_key,
+                     openai_api_key, duration_min, duration_max, num_clips, custom_prompt)
 
     return {"job_id": job_id}
 

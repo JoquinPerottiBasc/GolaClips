@@ -16,7 +16,7 @@ import mimetypes
 from google import genai
 from google.genai import types
 
-from prompts import build_detect_moments_prompt, build_short_pass_prompt
+from prompts import build_detect_moments_prompt
 
 GEMINI_MODEL = "gemini-3.1-pro-preview"
 
@@ -138,24 +138,7 @@ def analyze_video(
             ),
         )
         moments = _validate_moments(_parse_moments(response.text), video_duration, max_clips)
-
-        # Pass 2: find short clips in the gaps left by pass 1
-        if moments:
-            status_callback("gemini_short_pass")
-            short_prompt = build_short_pass_prompt(moments, video_duration)
-            try:
-                response2 = client.models.generate_content(
-                    model=GEMINI_MODEL,
-                    contents=[video_file, short_prompt],
-                    config=types.GenerateContentConfig(
-                        temperature=0.2,
-                        max_output_tokens=4096,
-                    ),
-                )
-                short_moments = _validate_moments(_parse_moments(response2.text), video_duration, 10)
-                moments = _merge_moments(moments, short_moments)
-            except Exception:
-                pass  # if pass 2 fails, keep pass 1 results
+        print(f"[pass1] Found: {len(moments)} clips")
 
         return moments
 

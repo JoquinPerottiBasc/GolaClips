@@ -3,12 +3,11 @@ const API_BASE = '';
 const uploadArea = document.getElementById('upload-area');
 const fileInput = document.getElementById('file-input');
 const optionsArea = document.getElementById('options-area');
-const progressArea = document.getElementById('progress-area');
-const progressBar = document.getElementById('progress-bar');
-const progressText = document.getElementById('progress-text');
-const fileName = document.getElementById('file-name');
-const fileSize = document.getElementById('file-size');
+const fileListSection = document.getElementById('file-list-section');
+const fileListEl = document.getElementById('file-list');
+const jobsSection = document.getElementById('jobs-section');
 const errorMsg = document.getElementById('error-msg');
+const btnAnalizar = document.getElementById('btn-analizar');
 
 const DURATION_MAP = {
   short:  { min: 10, max: 30 },
@@ -16,124 +15,287 @@ const DURATION_MAP = {
   long:   { min: 60, max: 120 },
 };
 
-let selectedFile = null;
+const STATUS_MESSAGES = {
+  queued:             'En cola...',
+  compressing:        'Comprimiendo video...',
+  uploading_to_gemini:'Subiendo a Gemini...',
+  gemini_processing:  'Gemini procesando...',
+  gemini_analyzing:   'Detectando momentos...',
+  cutting_clips:      'Cortando clips...',
+  done:               'Listo',
+  error:              'Error',
+};
 
-// Drag & drop
+const STATUS_PROGRESS = {
+  queued:              5,
+  compressing:        12,
+  uploading_to_gemini:28,
+  gemini_processing:  50,
+  gemini_analyzing:   72,
+  cutting_clips:      90,
+  done:              100,
+};
+
+const VIDEO_EXTENSIONS = ['mp4', 'mov', 'avi', 'mkv', 'webm', 'wmv', 'flv', 'ts', 'mts'];
+
+let selectedFiles = [];
+
+// --- Drag & drop ---
 uploadArea.addEventListener('dragover', (e) => {
   e.preventDefault();
   uploadArea.classList.add('drag-over');
 });
-
-uploadArea.addEventListener('dragleave', () => {
-  uploadArea.classList.remove('drag-over');
-});
-
+uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('drag-over'));
 uploadArea.addEventListener('drop', (e) => {
   e.preventDefault();
   uploadArea.classList.remove('drag-over');
-  const file = e.dataTransfer.files[0];
-  if (file) handleFile(file);
+  addFiles(Array.from(e.dataTransfer.files));
 });
-
 document.getElementById('btn-elegir').addEventListener('click', (e) => {
   e.stopPropagation();
   fileInput.click();
 });
-
 uploadArea.addEventListener('click', () => fileInput.click());
-
 fileInput.addEventListener('change', () => {
-  if (fileInput.files[0]) handleFile(fileInput.files[0]);
+  addFiles(Array.from(fileInput.files));
+  fileInput.value = '';
 });
+btnAnalizar.addEventListener('click', submitAll);
 
-document.getElementById('btn-analizar').addEventListener('click', () => {
-  if (selectedFile) startUpload(selectedFile);
-});
+// --- Helpers ---
+function isVideo(file) {
+  if (file.type.startsWith('video/')) return true;
+  return VIDEO_EXTENSIONS.includes(file.name.split('.').pop().toLowerCase());
+}
 
 function formatBytes(bytes) {
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+function formatTime(seconds) {
+  const m = Math.floor(seconds / 60);
+  const s = Math.floor(seconds % 60);
+  return `${m}:${s.toString().padStart(2, '0')}`;
+}
+
 function showError(msg) {
   errorMsg.textContent = msg;
   errorMsg.classList.remove('hidden');
-  progressArea.classList.add('hidden');
-  optionsArea.classList.remove('hidden');
-  uploadArea.classList.add('hidden');
+  setTimeout(() => errorMsg.classList.add('hidden'), 5000);
 }
 
-const VIDEO_EXTENSIONS = ['mp4', 'mov', 'avi', 'mkv', 'webm', 'wmv', 'flv', 'ts', 'mts'];
-
-function isVideo(file) {
-  if (file.type.startsWith('video/')) return true;
-  const ext = file.name.split('.').pop().toLowerCase();
-  return VIDEO_EXTENSIONS.includes(ext);
-}
-
-function handleFile(file) {
-  if (!isVideo(file)) {
-    showError('El archivo debe ser un video (MP4, MOV, AVI, MKV...)');
+// --- File selection ---
+function addFiles(files) {
+  const valid = files.filter(isVideo);
+  if (valid.length === 0) {
+    showError('Seleccioná al menos un video (MP4, MOV, AVI, MKV...)');
     return;
   }
-  selectedFile = file;
-  errorMsg.classList.add('hidden');
+  selectedFiles = [...selectedFiles, ...valid];
+  renderFileList();
   uploadArea.classList.add('hidden');
+  fileListSection.classList.remove('hidden');
   optionsArea.classList.remove('hidden');
-
-  fileName.textContent = file.name;
-  fileSize.textContent = formatBytes(file.size);
 }
 
-function startUpload(file) {
+function removeFile(index) {
+  selectedFiles.splice(index, 1);
+  if (selectedFiles.length === 0) {
+    fileListSection.classList.add('hidden');
+    optionsArea.classList.add('hidden');
+    uploadArea.classList.remove('hidden');
+  } else {
+    renderFileList();
+  }
+}
+
+function renderFileList() {
+  fileListEl.innerHTML = selectedFiles.map((f, i) => `
+    <div class="file-item">
+      <span class="file-item-name">${f.name}</span>
+      <span class="file-item-size">${formatBytes(f.size)}</span>
+      <button class="file-item-remove" onclick="removeFile(${i})">✕</button>
+    </div>
+  `).join('');
+  const n = selectedFiles.length;
+  btnAnalizar.textContent = `Analizar ${n} video${n > 1 ? 's' : ''} ⚡`;
+}
+
+// --- Submit ---
+async function submitAll() {
+  if (selectedFiles.length === 0) return;
+
   const durationVal = document.querySelector('input[name="duration"]:checked').value;
   const { min, max } = DURATION_MAP[durationVal];
   const numClips = document.getElementById('num-clips').value;
   const customPrompt = document.getElementById('custom-prompt').value;
 
+  fileListSection.classList.add('hidden');
   optionsArea.classList.add('hidden');
-  progressArea.classList.remove('hidden');
+  jobsSection.classList.remove('hidden');
 
+  const filesToSubmit = [...selectedFiles];
+  selectedFiles = [];
+
+  // Upload all files in parallel — backend queues processing serially
+  await Promise.all(filesToSubmit.map(f => submitFile(f, min, max, numClips, customPrompt)));
+}
+
+async function submitFile(file, durationMin, durationMax, numClips, customPrompt) {
+  // Create job card
+  const card = document.createElement('div');
+  card.className = 'job-card';
+  card.innerHTML = `
+    <div class="job-header">
+      <span class="job-filename">${file.name}</span>
+      <span class="job-badge">Subiendo...</span>
+    </div>
+    <div class="job-progress">
+      <div class="progress-bar-container">
+        <div class="progress-bar" style="width: 0%"></div>
+      </div>
+      <span class="progress-text">Subiendo... 0%</span>
+    </div>
+    <div class="job-clips hidden"></div>
+  `;
+  jobsSection.appendChild(card);
+
+  const progressBar = card.querySelector('.progress-bar');
+  const progressText = card.querySelector('.progress-text');
+  const jobBadge = card.querySelector('.job-badge');
+  const jobClips = card.querySelector('.job-clips');
+
+  // Upload
   const formData = new FormData();
   formData.append('file', file);
-  formData.append('duration_min', min);
-  formData.append('duration_max', max);
+  formData.append('duration_min', durationMin);
+  formData.append('duration_max', durationMax);
   formData.append('num_clips', numClips);
   formData.append('custom_prompt', customPrompt);
 
-  const xhr = new XMLHttpRequest();
+  const jobId = await new Promise((resolve) => {
+    const xhr = new XMLHttpRequest();
+    xhr.upload.addEventListener('progress', (e) => {
+      if (e.lengthComputable) {
+        const pct = Math.round((e.loaded / e.total) * 100);
+        progressBar.style.width = `${pct}%`;
+        progressText.textContent = `Subiendo... ${pct}%`;
+      }
+    });
+    xhr.addEventListener('load', () => {
+      if (xhr.status === 200) {
+        resolve(JSON.parse(xhr.responseText).job_id);
+      } else {
+        let msg = 'Error al subir';
+        try { msg = JSON.parse(xhr.responseText).detail || msg; } catch (_) {}
+        jobBadge.textContent = 'Error';
+        jobBadge.className = 'job-badge error';
+        progressText.textContent = msg;
+        resolve(null);
+      }
+    });
+    xhr.addEventListener('error', () => {
+      progressText.textContent = 'Error de conexión';
+      resolve(null);
+    });
+    xhr.open('POST', `${API_BASE}/api/upload`);
+    xhr.send(formData);
+  });
 
-  xhr.upload.addEventListener('progress', (e) => {
-    if (e.lengthComputable) {
-      const pct = Math.round((e.loaded / e.total) * 100);
+  if (!jobId) return;
+
+  progressBar.style.width = '5%';
+  pollJob(jobId, progressBar, progressText, jobBadge, jobClips);
+}
+
+// --- Polling ---
+function pollJob(jobId, progressBar, progressText, jobBadge, jobClips) {
+  async function check() {
+    try {
+      const res = await fetch(`${API_BASE}/api/status/${jobId}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+
+      const msg = STATUS_MESSAGES[data.status] || data.status;
+      const pct = STATUS_PROGRESS[data.status] ?? 0;
+      progressText.textContent = msg;
       progressBar.style.width = `${pct}%`;
-      progressText.textContent = `Subiendo... ${pct}%`;
+      jobBadge.textContent = msg;
+
+      if (data.status === 'done') {
+        jobBadge.className = 'job-badge done';
+        const n = data.clips.length;
+        progressText.textContent = `${n} clip${n !== 1 ? 's' : ''} encontrado${n !== 1 ? 's' : ''}`;
+        renderInlineClips(jobId, data.clips, jobClips);
+      } else if (data.status === 'error') {
+        jobBadge.className = 'job-badge error';
+        progressText.textContent = data.error || 'Error desconocido';
+        progressBar.style.background = 'var(--error)';
+      } else {
+        setTimeout(check, 2000);
+      }
+    } catch (_) {
+      setTimeout(check, 3000);
     }
-  });
+  }
+  setTimeout(check, 1000);
+}
 
-  xhr.addEventListener('load', () => {
-    if (xhr.status === 200) {
-      const data = JSON.parse(xhr.responseText);
-      progressBar.style.width = '100%';
-      progressText.textContent = 'Listo. Redirigiendo...';
-      setTimeout(() => {
-        window.location.href = `clips.html?job=${data.job_id}`;
-      }, 600);
-    } else {
-      let msg = 'Error al subir el video';
-      try { msg = JSON.parse(xhr.responseText).detail || msg; } catch (_) {}
-      showError(msg);
-    }
-  });
+// --- Inline clip rendering ---
+function renderInlineClips(jobId, clips, container) {
+  container.classList.remove('hidden');
+  container.innerHTML = `
+    <div class="inline-clips-header">
+      <div class="sort-toggle">
+        <button class="sort-btn active" id="sort-time-${jobId}" onclick="setInlineSort('${jobId}', 'time', this)">Por tiempo</button>
+        <button class="sort-btn" id="sort-score-${jobId}" onclick="setInlineSort('${jobId}', 'score', this)">Por puntuación</button>
+      </div>
+    </div>
+    <div class="clips-grid" id="clips-grid-${jobId}"></div>
+  `;
+  window[`_clips_${jobId}`] = clips;
+  window[`_sort_${jobId}`] = 'time';
+  renderInlineGrid(jobId);
+}
 
-  xhr.addEventListener('error', () => {
-    showError('No se pudo conectar con el servidor. ¿Está corriendo el backend?');
-  });
+function setInlineSort(jobId, mode, btn) {
+  window[`_sort_${jobId}`] = mode;
+  document.getElementById(`sort-time-${jobId}`).classList.toggle('active', mode === 'time');
+  document.getElementById(`sort-score-${jobId}`).classList.toggle('active', mode === 'score');
+  renderInlineGrid(jobId);
+}
 
-  xhr.addEventListener('abort', () => {
-    showError('La subida fue cancelada. Intentá de nuevo.');
-  });
+function renderInlineGrid(jobId) {
+  const clips = window[`_clips_${jobId}`];
+  const mode = window[`_sort_${jobId}`];
+  const sorted = [...clips].sort((a, b) =>
+    mode === 'score' ? (b.score || 5) - (a.score || 5) : a.start - b.start
+  );
+  document.getElementById(`clips-grid-${jobId}`).innerHTML = sorted.map((clip, i) => `
+    <div class="clip-card">
+      <video class="clip-video" controls preload="metadata">
+        <source src="${API_BASE}/clips/${jobId}/${clip.filename}" type="video/mp4">
+      </video>
+      <div class="clip-info">
+        <div class="clip-info-left">
+          <div class="clip-label-row">
+            <span class="clip-label">Clip ${i + 1}</span>
+            <span class="clip-score">★ ${clip.score || 5}/10</span>
+          </div>
+          ${clip.description ? `
+          <div class="clip-desc" id="idesc-${jobId}-${i}">${clip.description}</div>
+          <button class="btn-ver-mas" onclick="toggleInlineDesc('${jobId}', ${i}, this)">ver más</button>` : ''}
+          <div class="clip-time">${formatTime(clip.start)} – ${formatTime(clip.end)}</div>
+        </div>
+        <a class="btn-download" href="${API_BASE}/clips/${jobId}/${clip.filename}" download="${clip.filename}">↓ Descargar</a>
+      </div>
+    </div>
+  `).join('');
+}
 
-  xhr.open('POST', `${API_BASE}/api/upload`);
-  xhr.send(formData);
+function toggleInlineDesc(jobId, i, btn) {
+  const desc = document.getElementById(`idesc-${jobId}-${i}`);
+  const open = desc.classList.toggle('visible');
+  btn.textContent = open ? 'ver menos' : 'ver más';
 }
