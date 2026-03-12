@@ -619,3 +619,40 @@ header h1 {
   justify-content: flex-end;
   margin-bottom: 1rem;
 }
+
+/* Extend clip controls */
+.extend-controls {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.btn-extend {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  border-radius: 6px;
+  padding: 3px 10px;
+  font-size: 0.72rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+  line-height: 1.6;
+}
+
+.btn-extend:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: #1a1030;
+}
+
+.btn-extend-end:hover:not(:disabled) {
+  border-color: var(--success);
+  color: var(--success);
+  background: #0a1f17;
+}
+
+.btn-extend:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}

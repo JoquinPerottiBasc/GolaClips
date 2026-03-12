@@ -6,10 +6,12 @@ from contextlib import asynccontextmanager
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
+from fastapi.concurrency import run_in_threadpool
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
 
-from processor import process_video, CLIPS_DIR
+from processor import process_video, CLIPS_DIR, get_video_duration, cut_clip
 
 load_dotenv()
 
@@ -21,6 +23,11 @@ jobs: dict[str, dict] = {}
 
 # max_workers=1 guarantees jobs are processed one at a time
 _executor = ThreadPoolExecutor(max_workers=1)
+
+
+class ExtendRequest(BaseModel):
+    add_start: float = 0.0
+    add_end: float = 0.0
 
 
 @asynccontextmanager
@@ -62,8 +69,12 @@ def run_processing(job_id: str, video_path: str, api_key: str, openai_api_key: s
         jobs[job_id]["status"] = "error"
         jobs[job_id]["error"] = str(e)
     finally:
+        # Keep original video so clips can be re-cut (extend feature)
         try:
-            os.unlink(video_path)
+            original_ext = Path(video_path).suffix
+            original_kept = UPLOADS_DIR / f"{job_id}_original{original_ext}"
+            os.rename(video_path, str(original_kept))
+            jobs[job_id]["original_video"] = str(original_kept)
         except OSError:
             pass
 
@@ -109,6 +120,33 @@ async def get_status(job_id: str):
     if job_id not in jobs:
         raise HTTPException(status_code=404, detail="Job no encontrado")
     return jobs[job_id]
+
+
+@app.post("/api/clips/{job_id}/{clip_filename}/extend")
+async def extend_clip(job_id: str, clip_filename: str, body: ExtendRequest):
+    if job_id not in jobs:
+        raise HTTPException(status_code=404, detail="Job no encontrado")
+
+    original_video = jobs[job_id].get("original_video")
+    if not original_video or not Path(original_video).exists():
+        raise HTTPException(status_code=404, detail="Video original no disponible")
+
+    clips = jobs[job_id].get("clips", [])
+    clip = next((c for c in clips if c["filename"] == clip_filename), None)
+    if not clip:
+        raise HTTPException(status_code=404, detail="Clip no encontrado")
+
+    duration = await run_in_threadpool(get_video_duration, original_video)
+    new_start = max(0.0, clip["start"] - body.add_start)
+    new_end = min(duration, clip["end"] + body.add_end)
+
+    out_path = str(CLIPS_DIR / job_id / clip_filename)
+    await run_in_threadpool(cut_clip, original_video, new_start, new_end, out_path)
+
+    clip["start"] = new_start
+    clip["end"] = new_end
+
+    return {"start": new_start, "end": new_end, "filename": clip_filename}
 
 
 @app.get("/health")

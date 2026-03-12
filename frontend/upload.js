@@ -40,6 +40,16 @@ const VIDEO_EXTENSIONS = ['mp4', 'mov', 'avi', 'mkv', 'webm', 'wmv', 'flv', 'ts'
 
 let selectedFiles = [];
 
+// Version counter per clip for cache-busting after extend
+const _clipVersions = {};
+function getClipVersion(jobId, filename) {
+  return _clipVersions[`${jobId}/${filename}`] || 0;
+}
+function bumpClipVersion(jobId, filename) {
+  const key = `${jobId}/${filename}`;
+  _clipVersions[key] = (_clipVersions[key] || 0) + 1;
+}
+
 // --- Drag & drop ---
 uploadArea.addEventListener('dragover', (e) => {
   e.preventDefault();
@@ -275,7 +285,7 @@ function renderInlineGrid(jobId) {
   document.getElementById(`clips-grid-${jobId}`).innerHTML = sorted.map((clip, i) => `
     <div class="clip-card">
       <video class="clip-video" controls preload="metadata">
-        <source src="${API_BASE}/clips/${jobId}/${clip.filename}" type="video/mp4">
+        <source src="${API_BASE}/clips/${jobId}/${clip.filename}?v=${getClipVersion(jobId, clip.filename)}" type="video/mp4">
       </video>
       <div class="clip-info">
         <div class="clip-info-left">
@@ -287,8 +297,12 @@ function renderInlineGrid(jobId) {
           <div class="clip-desc" id="idesc-${jobId}-${i}">${clip.description}</div>
           <button class="btn-ver-mas" onclick="toggleInlineDesc('${jobId}', ${i}, this)">ver más</button>` : ''}
           <div class="clip-time">${formatTime(clip.start)} – ${formatTime(clip.end)}</div>
+          <div class="extend-controls">
+            <button class="btn-extend" onclick="extendClip(event,'${jobId}','${clip.filename}',5,0)">← +5s</button>
+            <button class="btn-extend btn-extend-end" onclick="extendClip(event,'${jobId}','${clip.filename}',0,5)">+5s →</button>
+          </div>
         </div>
-        <a class="btn-download" href="${API_BASE}/clips/${jobId}/${clip.filename}" download="${clip.filename}">↓ Descargar</a>
+        <a class="btn-download" href="${API_BASE}/clips/${jobId}/${clip.filename}?v=${getClipVersion(jobId, clip.filename)}" download="${clip.filename}">↓ Descargar</a>
       </div>
     </div>
   `).join('');
@@ -298,4 +312,36 @@ function toggleInlineDesc(jobId, i, btn) {
   const desc = document.getElementById(`idesc-${jobId}-${i}`);
   const open = desc.classList.toggle('visible');
   btn.textContent = open ? 'ver menos' : 'ver más';
+}
+
+// --- Extend clip ---
+async function extendClip(event, jobId, filename, addStart, addEnd) {
+  const btn = event.currentTarget;
+  const orig = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = '...';
+
+  try {
+    const res = await fetch(`${API_BASE}/api/clips/${jobId}/${filename}/extend`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ add_start: addStart, add_end: addEnd }),
+    });
+    if (!res.ok) throw new Error('Error al extender');
+    const data = await res.json();
+
+    const clips = window[`_clips_${jobId}`];
+    const clip = clips.find(c => c.filename === filename);
+    if (clip) {
+      clip.start = data.start;
+      clip.end = data.end;
+    }
+
+    bumpClipVersion(jobId, filename);
+    renderInlineGrid(jobId);
+  } catch (err) {
+    console.error('extend error:', err);
+    btn.disabled = false;
+    btn.textContent = orig;
+  }
 }
