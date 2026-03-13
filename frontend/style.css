@@ -70,11 +70,8 @@ header h1 {
 }
 
 .logo-img {
-  height: 34px;
+  height: 38px;
   width: auto;
-  background: #fff;
-  border-radius: 8px;
-  padding: 4px 10px;
   display: block;
 }
 
