@@ -134,10 +134,12 @@ function renderHistoryJob(job) {
     </div>
     ${!expired && job.clips.length ? `
       <div class="history-clips-grid hidden">
-        ${job.clips.map((clip, i) => `
+        ${job.clips.map((clip, i) => {
+          const srcUrl = clip.url || `${API_BASE}/clips/${job.job_id}/${clip.filename}`;
+          return `
           <div class="clip-card">
             <video class="clip-video" controls preload="none">
-              <source src="${clip.url}" type="video/mp4">
+              <source src="${srcUrl}" type="video/mp4">
             </video>
             <div class="clip-info">
               <div class="clip-info-left">
@@ -148,10 +150,10 @@ function renderHistoryJob(job) {
                 ${clip.description ? `<div class="clip-desc visible">${clip.description}</div>` : ''}
                 <div class="clip-time">${formatTime(clip.start)} – ${formatTime(clip.end)}</div>
               </div>
-              <a class="btn-download" href="${clip.url}" download="${clip.filename}">↓ Descargar</a>
+              <a class="btn-download" href="${srcUrl}" download="${clip.filename}">↓ Descargar</a>
             </div>
           </div>
-        `).join('')}
+        `}).join('')}
       </div>
     ` : ''}
   `;
