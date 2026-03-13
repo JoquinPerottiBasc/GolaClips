@@ -70,9 +70,10 @@ header h1 {
 }
 
 .logo-img {
-  height: 90px;
+  height: 280px;
   width: auto;
   display: block;
+  margin: -110px 0;
 }
 
 .tagline {
