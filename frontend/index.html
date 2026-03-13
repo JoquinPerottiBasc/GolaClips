@@ -3,113 +3,779 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>GolaClips - Subí tu video</title>
+  <title>GolaClips — Tus mejores momentos, en segundos</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #06060f;
+      --surface:  #0f0f1e;
+      --border:   #1e1e32;
+      --accent:   #7c3aed;
+      --accent-2: #22d3ee;
+      --text:     #eeeef5;
+      --muted:    #6b6b90;
+      --gradient: linear-gradient(135deg, #7c3aed, #22d3ee);
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', -apple-system, sans-serif;
+      overflow-x: hidden;
+    }
+
+    /* ── NAV ───────────────────────────────────────── */
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1.1rem 2rem;
+      transition: background 0.3s, backdrop-filter 0.3s;
+    }
+    nav.scrolled {
+      background: rgba(6, 6, 15, 0.85);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-logo {
+      font-size: 1.25rem;
+      font-weight: 800;
+      background: var(--gradient);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      text-decoration: none;
+      letter-spacing: -0.3px;
+    }
+    .nav-cta {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1.25rem;
+      border-radius: 8px;
+      background: transparent;
+      border: 1px solid rgba(124, 58, 237, 0.4);
+      color: var(--text);
+      font-size: 0.875rem;
+      font-weight: 500;
+      text-decoration: none;
+      transition: border-color 0.2s, background 0.2s;
+    }
+    .nav-cta:hover {
+      background: rgba(124, 58, 237, 0.12);
+      border-color: var(--accent);
+    }
+
+    /* ── HERO ──────────────────────────────────────── */
+    .hero {
+      position: relative;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      overflow: hidden;
+    }
+    .hero-bg {
+      position: absolute;
+      inset: 0;
+      background-image: url('assets/hero-motocross.png');
+      background-size: cover;
+      background-position: center 30%;
+      transform: scale(1.05);
+      transition: transform 8s ease-out;
+    }
+    .hero-bg.loaded { transform: scale(1); }
+    .hero-overlay {
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(to bottom, rgba(6,6,15,0.3) 0%, rgba(6,6,15,0.6) 60%, rgba(6,6,15,1) 100%),
+        linear-gradient(135deg, rgba(124,58,237,0.25) 0%, rgba(34,211,238,0.1) 100%);
+    }
+    .hero-content {
+      position: relative;
+      z-index: 2;
+      max-width: 780px;
+      padding: 2rem;
+    }
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.4rem 1rem;
+      border-radius: 100px;
+      background: rgba(124, 58, 237, 0.15);
+      border: 1px solid rgba(124, 58, 237, 0.35);
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #a78bfa;
+      letter-spacing: 0.03em;
+      margin-bottom: 1.75rem;
+    }
+    .hero-badge span { opacity: 0.7; }
+    .hero-title {
+      font-size: clamp(2.4rem, 6vw, 4.2rem);
+      font-weight: 900;
+      line-height: 1.1;
+      letter-spacing: -1.5px;
+      margin-bottom: 1.25rem;
+    }
+    .hero-title em {
+      font-style: normal;
+      background: var(--gradient);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .hero-sub {
+      font-size: clamp(1rem, 2.5vw, 1.2rem);
+      color: rgba(238, 238, 245, 0.7);
+      line-height: 1.6;
+      max-width: 560px;
+      margin: 0 auto 2.5rem;
+    }
+    .hero-actions {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    .btn-hero {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.9rem 2.2rem;
+      border-radius: 12px;
+      background: var(--gradient);
+      color: #fff;
+      font-size: 1rem;
+      font-weight: 700;
+      text-decoration: none;
+      border: none;
+      cursor: pointer;
+      box-shadow: 0 0 40px rgba(124, 58, 237, 0.45);
+      transition: transform 0.2s, box-shadow 0.2s;
+      letter-spacing: -0.2px;
+    }
+    .btn-hero:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 0 60px rgba(124, 58, 237, 0.6);
+    }
+    .hero-fine {
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-top: 1rem;
+    }
+    .scroll-indicator {
+      position: absolute;
+      bottom: 2.5rem;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.4rem;
+      opacity: 0.4;
+      animation: bounce 2s infinite;
+    }
+    .scroll-indicator span {
+      font-size: 0.7rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    @keyframes bounce {
+      0%, 100% { transform: translateX(-50%) translateY(0); }
+      50% { transform: translateX(-50%) translateY(6px); }
+    }
+
+    /* ── STATS BAR ─────────────────────────────────── */
+    .stats-bar {
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      padding: 1.5rem 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0;
+      flex-wrap: wrap;
+    }
+    .stat-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.2rem;
+      padding: 0.5rem 3rem;
+      border-right: 1px solid var(--border);
+    }
+    .stat-item:last-child { border-right: none; }
+    .stat-value {
+      font-size: 1.6rem;
+      font-weight: 800;
+      background: var(--gradient);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      letter-spacing: -0.5px;
+    }
+    .stat-label {
+      font-size: 0.8rem;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    /* ── SECTIONS SHARED ───────────────────────────── */
+    section {
+      padding: 6rem 2rem;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+    .section-tag {
+      display: inline-block;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #a78bfa;
+      margin-bottom: 1rem;
+    }
+    .section-title {
+      font-size: clamp(1.8rem, 4vw, 2.6rem);
+      font-weight: 800;
+      line-height: 1.15;
+      letter-spacing: -0.8px;
+      margin-bottom: 1rem;
+    }
+    .section-sub {
+      font-size: 1.05rem;
+      color: var(--muted);
+      line-height: 1.6;
+      max-width: 540px;
+    }
+
+    /* ── FADE IN ANIMATION ─────────────────────────── */
+    .fade-up {
+      opacity: 0;
+      transform: translateY(30px);
+      transition: opacity 0.7s ease, transform 0.7s ease;
+    }
+    .fade-up.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .fade-up:nth-child(2) { transition-delay: 0.1s; }
+    .fade-up:nth-child(3) { transition-delay: 0.2s; }
+    .fade-up:nth-child(4) { transition-delay: 0.3s; }
+
+    /* ── HOW IT WORKS ──────────────────────────────── */
+    .how-section {
+      text-align: center;
+    }
+    .how-section .section-sub {
+      margin: 0 auto 4rem;
+    }
+    .steps-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.5rem;
+      position: relative;
+    }
+    .steps-grid::before {
+      content: '';
+      position: absolute;
+      top: 3.5rem;
+      left: calc(16.6% + 2rem);
+      right: calc(16.6% + 2rem);
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--accent), transparent);
+      opacity: 0.4;
+    }
+    .step-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 2.5rem 2rem;
+      position: relative;
+      transition: border-color 0.3s, transform 0.3s;
+    }
+    .step-card:hover {
+      border-color: rgba(124, 58, 237, 0.4);
+      transform: translateY(-4px);
+    }
+    .step-number {
+      width: 3rem;
+      height: 3rem;
+      border-radius: 12px;
+      background: var(--gradient);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+      font-weight: 800;
+      color: #fff;
+      margin: 0 auto 1.5rem;
+    }
+    .step-icon {
+      font-size: 2rem;
+      margin-bottom: 1rem;
+    }
+    .step-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin-bottom: 0.6rem;
+    }
+    .step-desc {
+      font-size: 0.9rem;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    /* ── SPORTS GRID ───────────────────────────────── */
+    .sports-section {
+      padding-top: 2rem;
+    }
+    .sports-header {
+      margin-bottom: 3rem;
+    }
+    .sports-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      grid-template-rows: repeat(2, 280px);
+      gap: 1rem;
+      border-radius: 24px;
+      overflow: hidden;
+    }
+    .sport-card {
+      position: relative;
+      overflow: hidden;
+      cursor: default;
+    }
+    .sport-card img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.6s ease;
+    }
+    .sport-card:hover img { transform: scale(1.06); }
+    .sport-overlay {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to top, rgba(6,6,15,0.75) 0%, rgba(6,6,15,0.1) 60%);
+      display: flex;
+      align-items: flex-end;
+      padding: 1.5rem;
+    }
+    .sport-name {
+      font-size: 1.1rem;
+      font-weight: 700;
+      letter-spacing: -0.2px;
+    }
+    .sport-gopro {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      font-size: 0.7rem;
+      color: rgba(238,238,245,0.5);
+      margin-top: 0.2rem;
+    }
+    .sport-info {
+      display: flex;
+      flex-direction: column;
+      gap: 0.1rem;
+    }
+
+    /* ── APP PREVIEW ───────────────────────────────── */
+    .preview-section {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 5rem;
+      align-items: center;
+    }
+    .preview-text .section-sub {
+      margin-bottom: 2rem;
+    }
+    .feature-list {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      list-style: none;
+    }
+    .feature-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+      font-size: 0.95rem;
+      color: rgba(238,238,245,0.8);
+      line-height: 1.5;
+    }
+    .feature-check {
+      flex-shrink: 0;
+      width: 1.4rem;
+      height: 1.4rem;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #7c3aed, #22d3ee);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.65rem;
+      margin-top: 0.1rem;
+    }
+    .preview-frame {
+      position: relative;
+    }
+    .preview-glow {
+      position: absolute;
+      inset: -20px;
+      background: radial-gradient(ellipse at center, rgba(124,58,237,0.3) 0%, transparent 70%);
+      filter: blur(20px);
+      z-index: 0;
+    }
+    .preview-img {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      border-radius: 16px;
+      border: 1px solid rgba(124, 58, 237, 0.35);
+      box-shadow: 0 24px 60px rgba(0,0,0,0.5);
+    }
+    .preview-browser-bar {
+      position: relative;
+      z-index: 1;
+      background: #0f0f1e;
+      border: 1px solid rgba(124, 58, 237, 0.35);
+      border-bottom: none;
+      border-radius: 16px 16px 0 0;
+      padding: 0.7rem 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .browser-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+    .preview-img-wrap {
+      border: 1px solid rgba(124, 58, 237, 0.35);
+      border-top: none;
+      border-radius: 0 0 16px 16px;
+      overflow: hidden;
+    }
+    .preview-img-wrap img {
+      width: 100%;
+      display: block;
+    }
+
+    /* ── FINAL CTA ─────────────────────────────────── */
+    .cta-section {
+      text-align: center;
+      padding: 7rem 2rem;
+      position: relative;
+    }
+    .cta-bg {
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 60% 60% at 50% 50%, rgba(124,58,237,0.12), transparent);
+      pointer-events: none;
+    }
+    .cta-section .section-title {
+      margin-bottom: 1rem;
+      position: relative;
+    }
+    .cta-section .section-sub {
+      margin: 0 auto 2.5rem;
+      position: relative;
+    }
+    .cta-fine {
+      margin-top: 1rem;
+      font-size: 0.8rem;
+      color: var(--muted);
+      position: relative;
+    }
+
+    /* ── FOOTER ────────────────────────────────────── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      max-width: 1100px;
+      margin: 0 auto;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    .footer-logo {
+      font-size: 1rem;
+      font-weight: 800;
+      background: var(--gradient);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .footer-copy {
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+
+    /* ── RESPONSIVE ────────────────────────────────── */
+    @media (max-width: 768px) {
+      .steps-grid { grid-template-columns: 1fr; }
+      .steps-grid::before { display: none; }
+      .sports-grid {
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: repeat(2, 200px);
+      }
+      .preview-section {
+        grid-template-columns: 1fr;
+        gap: 3rem;
+      }
+      .stat-item {
+        padding: 0.5rem 1.5rem;
+        border-right: none;
+        border-bottom: 1px solid var(--border);
+      }
+      .stat-item:last-child { border-bottom: none; }
+      nav { padding: 1rem 1.25rem; }
+      section { padding: 4rem 1.25rem; }
+    }
+    @media (max-width: 480px) {
+      .sports-grid {
+        grid-template-columns: 1fr;
+        grid-template-rows: repeat(4, 200px);
+      }
+    }
+  </style>
 </head>
 <body>
-  <div class="container">
-    <header>
-      <div class="header-brand">
-        <h1>⚡ GolaClips</h1>
-        <p class="tagline">Subí tus videos de deportes. La IA encuentra los mejores momentos.</p>
+
+  <!-- NAV -->
+  <nav id="nav">
+    <a href="index.html" class="nav-logo">⚡ GolaClips</a>
+    <a href="login.html" class="nav-cta">Iniciar sesión →</a>
+  </nav>
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="hero-bg" id="hero-bg"></div>
+    <div class="hero-overlay"></div>
+    <div class="hero-content">
+      <div class="hero-badge">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" fill="#a78bfa"/></svg>
+        Powered by Gemini AI
+        <span>· 100% automático</span>
       </div>
-      <div class="header-user hidden" id="header-user">
-        <img id="user-avatar" class="user-avatar" src="" alt="" onerror="this.style.display='none'">
-        <span id="user-name" class="user-name"></span>
-        <button class="btn-logout" onclick="signOut()">Salir</button>
+      <h1 class="hero-title">
+        Horas de video.<br>
+        <em>Solo los mejores momentos.</em>
+      </h1>
+      <p class="hero-sub">
+        GolaClips analiza tus videos de acción con inteligencia artificial y detecta automáticamente los clips más épicos. Listo para descargar en minutos.
+      </p>
+      <div class="hero-actions">
+        <a href="login.html" class="btn-hero">
+          Empezar gratis
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M5 12H19M13 6l6 6-6 6" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </a>
       </div>
-    </header>
-
-    <main>
-      <div id="upload-area" class="upload-area">
-        <div class="upload-icon">🎬</div>
-        <p class="upload-text">Arrastrá tus videos acá</p>
-        <p class="upload-sub">o</p>
-        <button class="btn-primary" id="btn-elegir">Elegir archivos</button>
-        <input type="file" id="file-input" accept="video/*" multiple hidden>
-        <p class="upload-hint">MP4, MOV, AVI, MKV · Podés seleccionar varios a la vez</p>
-      </div>
-
-      <div id="file-list-section" class="hidden">
-        <div id="file-list"></div>
-      </div>
-
-      <div id="options-area" class="options-area hidden">
-        <div class="option-group">
-          <label class="option-label">Duración de clips</label>
-          <div class="duration-options">
-            <label class="duration-opt">
-              <input type="radio" name="duration" value="short">
-              <div class="duration-opt-content">
-                <span class="duration-name">Cortos</span>
-                <span class="duration-range">hasta 30 seg</span>
-              </div>
-            </label>
-            <label class="duration-opt">
-              <input type="radio" name="duration" value="medium" checked>
-              <div class="duration-opt-content">
-                <span class="duration-name">Medios <span class="badge-rec">Recomendado</span></span>
-                <span class="duration-range">hasta 1 min</span>
-              </div>
-            </label>
-            <label class="duration-opt">
-              <input type="radio" name="duration" value="long">
-              <div class="duration-opt-content">
-                <span class="duration-name">Largos</span>
-                <span class="duration-range">hasta 2 min</span>
-              </div>
-            </label>
-          </div>
-        </div>
-
-        <div class="option-group option-row">
-          <div class="option-half">
-            <label class="option-label" for="num-clips">Cantidad de clips</label>
-            <select id="num-clips" class="option-select">
-              <option value="auto">IA decide (Recomendado)</option>
-              <option value="3">3 clips</option>
-              <option value="5">5 clips</option>
-              <option value="8">8 clips</option>
-              <option value="10">10 clips</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="option-group">
-          <label class="option-label" for="custom-prompt">
-            ¿Qué momentos querés extraer?
-            <span class="option-optional">(opcional)</span>
-          </label>
-          <textarea
-            id="custom-prompt"
-            class="option-textarea"
-            placeholder="Ej: Solo caídas épicas y trucos imposibles..."
-            rows="2"
-          ></textarea>
-        </div>
-
-        <button class="btn-primary btn-analyze" id="btn-analizar">Analizar ⚡</button>
-      </div>
-
-      <div id="error-msg" class="error-msg hidden"></div>
-
-      <div id="jobs-section" class="jobs-section hidden"></div>
-
-      <!-- History section -->
-      <div id="history-section" class="history-section hidden">
-        <div class="history-header">
-          <h2 class="history-title">Tus clips anteriores</h2>
-        </div>
-        <div id="history-list" class="history-list"></div>
-      </div>
-    </main>
+      <p class="hero-fine">Sin tarjeta de crédito · Compatible con GoPro, DJI y más</p>
+    </div>
+    <div class="scroll-indicator">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="rgba(238,238,245,0.4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
   </div>
 
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
-  <script src="firebase-config.js"></script>
-  <script src="upload.js"></script>
+  <!-- STATS -->
+  <div class="stats-bar">
+    <div class="stat-item">
+      <span class="stat-value">&lt; 5 min</span>
+      <span class="stat-label">Tiempo de análisis</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-value">1-10</span>
+      <span class="stat-label">Cada clip puntuado por emoción</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-value">+10</span>
+      <span class="stat-label">Formatos soportados</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-value">100%</span>
+      <span class="stat-label">Automático</span>
+    </div>
+  </div>
+
+  <!-- HOW IT WORKS -->
+  <section class="how-section">
+    <div class="fade-up">
+      <span class="section-tag">Cómo funciona</span>
+      <h2 class="section-title">Tres pasos. Cero esfuerzo.</h2>
+      <p class="section-sub">No hace falta editar ni revisar horas de video. GolaClips lo hace por vos.</p>
+    </div>
+    <div class="steps-grid">
+      <div class="step-card fade-up">
+        <div class="step-number">1</div>
+        <div class="step-icon">🎬</div>
+        <div class="step-title">Subí tu video</div>
+        <p class="step-desc">Arrastrá cualquier video grabado con GoPro, DJI, cámara de acción o celular. MP4, MOV, AVI y más.</p>
+      </div>
+      <div class="step-card fade-up">
+        <div class="step-number">2</div>
+        <div class="step-icon">⚡</div>
+        <div class="step-title">La IA analiza todo</div>
+        <p class="step-desc">Gemini revisa el video completo y detecta los momentos más emocionantes: saltos, maniobras, caídas, paisajes épicos.</p>
+      </div>
+      <div class="step-card fade-up">
+        <div class="step-number">3</div>
+        <div class="step-icon">✂️</div>
+        <div class="step-title">Descargá tus clips</div>
+        <p class="step-desc">Recibís los clips cortados en calidad original, ordenados por puntuación. Listos para compartir donde quieras.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- SPORTS GRID -->
+  <section class="sports-section">
+    <div class="sports-header fade-up">
+      <span class="section-tag">Versatilidad</span>
+      <h2 class="section-title">Para cualquier deporte de acción</h2>
+      <p class="section-sub">Si grabás la aventura, GolaClips encuentra lo mejor.</p>
+    </div>
+    <div class="sports-grid fade-up">
+      <div class="sport-card">
+        <img src="assets/sport-snowboard.png" alt="Snowboard" loading="lazy">
+        <div class="sport-overlay">
+          <div class="sport-info">
+            <span class="sport-name">Snowboard</span>
+            <span class="sport-gopro">📷 GoPro / DJI</span>
+          </div>
+        </div>
+      </div>
+      <div class="sport-card">
+        <img src="assets/sport-mtb.png" alt="Mountain Bike" loading="lazy">
+        <div class="sport-overlay">
+          <div class="sport-info">
+            <span class="sport-name">Mountain Bike</span>
+            <span class="sport-gopro">📷 GoPro / DJI</span>
+          </div>
+        </div>
+      </div>
+      <div class="sport-card">
+        <img src="assets/hero-motocross.png" alt="Motocross" loading="lazy">
+        <div class="sport-overlay">
+          <div class="sport-info">
+            <span class="sport-name">Motocross</span>
+            <span class="sport-gopro">📷 GoPro / DJI</span>
+          </div>
+        </div>
+      </div>
+      <div class="sport-card">
+        <img src="assets/sport-karting.png" alt="Karting" loading="lazy">
+        <div class="sport-overlay">
+          <div class="sport-info">
+            <span class="sport-name">Karting</span>
+            <span class="sport-gopro">📷 GoPro / DJI</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- APP PREVIEW -->
+  <section class="preview-section">
+    <div class="preview-text fade-up">
+      <span class="section-tag">El producto</span>
+      <h2 class="section-title">Resultados reales. En minutos.</h2>
+      <p class="section-sub">Cada clip viene con puntuación de emoción del 1 al 10, descripción de lo que pasa, y la opción de ajustar el inicio y el final.</p>
+      <ul class="feature-list">
+        <li>
+          <span class="feature-check">✓</span>
+          Clips ordenados por tiempo o por puntuación
+        </li>
+        <li>
+          <span class="feature-check">✓</span>
+          Ajustá cada clip sumando o quitando segundos
+        </li>
+        <li>
+          <span class="feature-check">✓</span>
+          Descargá en la calidad original del video
+        </li>
+        <li>
+          <span class="feature-check">✓</span>
+          Tu historial guardado por 7 días
+        </li>
+      </ul>
+    </div>
+    <div class="preview-frame fade-up">
+      <div class="preview-glow"></div>
+      <div class="preview-browser-bar">
+        <div class="browser-dot" style="background:#f43f5e"></div>
+        <div class="browser-dot" style="background:#f59e0b"></div>
+        <div class="browser-dot" style="background:#10b981"></div>
+      </div>
+      <div class="preview-img-wrap">
+        <img src="assets/app-demo.jpeg" alt="GolaClips app — clips generados" loading="lazy">
+      </div>
+    </div>
+  </section>
+
+  <!-- FINAL CTA -->
+  <section class="cta-section">
+    <div class="cta-bg"></div>
+    <span class="section-tag" style="position:relative">Empezar ahora</span>
+    <h2 class="section-title">¿Listo para encontrar tus mejores momentos?</h2>
+    <p class="section-sub" style="margin: 0 auto 2.5rem; position:relative">
+      Subí tu primer video y la IA hace el resto. Gratis.
+    </p>
+    <a href="login.html" class="btn-hero" style="position:relative">
+      Empezar gratis
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M5 12H19M13 6l6 6-6 6" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </a>
+    <p class="cta-fine">Sin tarjeta de crédito · Ingresá con tu cuenta de Google</p>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <span class="footer-logo">⚡ GolaClips</span>
+    <span class="footer-copy">© 2026 GolaClips. Todos los derechos reservados.</span>
+  </footer>
+
+  <script>
+    // Nav scroll effect
+    const nav = document.getElementById('nav');
+    window.addEventListener('scroll', () => {
+      nav.classList.toggle('scrolled', window.scrollY > 60);
+    });
+
+    // Hero image parallax + load animation
+    const heroBg = document.getElementById('hero-bg');
+    const img = new Image();
+    img.onload = () => heroBg.classList.add('loaded');
+    img.src = 'assets/hero-motocross.png';
+
+    // Fade-up on scroll
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(e => {
+        if (e.isIntersecting) {
+          e.target.classList.add('visible');
+          observer.unobserve(e.target);
+        }
+      });
+    }, { threshold: 0.12 });
+
+    document.querySelectorAll('.fade-up').forEach(el => observer.observe(el));
+  </script>
 </body>
 </html>

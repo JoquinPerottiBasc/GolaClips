@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GolaClips - Subí tu video</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="header-brand">
+        <h1>⚡ GolaClips</h1>
+        <p class="tagline">Subí tus videos de deportes. La IA encuentra los mejores momentos.</p>
+      </div>
+      <div class="header-user hidden" id="header-user">
+        <img id="user-avatar" class="user-avatar" src="" alt="" onerror="this.style.display='none'">
+        <span id="user-name" class="user-name"></span>
+        <button class="btn-logout" onclick="signOut()">Salir</button>
+      </div>
+    </header>
+
+    <main>
+      <div id="upload-area" class="upload-area">
+        <div class="upload-icon">🎬</div>
+        <p class="upload-text">Arrastrá tus videos acá</p>
+        <p class="upload-sub">o</p>
+        <button class="btn-primary" id="btn-elegir">Elegir archivos</button>
+        <input type="file" id="file-input" accept="video/*" multiple hidden>
+        <p class="upload-hint">MP4, MOV, AVI, MKV · Podés seleccionar varios a la vez</p>
+      </div>
+
+      <div id="file-list-section" class="hidden">
+        <div id="file-list"></div>
+      </div>
+
+      <div id="options-area" class="options-area hidden">
+        <div class="option-group">
+          <label class="option-label">Duración de clips</label>
+          <div class="duration-options">
+            <label class="duration-opt">
+              <input type="radio" name="duration" value="short">
+              <div class="duration-opt-content">
+                <span class="duration-name">Cortos</span>
+                <span class="duration-range">hasta 30 seg</span>
+              </div>
+            </label>
+            <label class="duration-opt">
+              <input type="radio" name="duration" value="medium" checked>
+              <div class="duration-opt-content">
+                <span class="duration-name">Medios <span class="badge-rec">Recomendado</span></span>
+                <span class="duration-range">hasta 1 min</span>
+              </div>
+            </label>
+            <label class="duration-opt">
+              <input type="radio" name="duration" value="long">
+              <div class="duration-opt-content">
+                <span class="duration-name">Largos</span>
+                <span class="duration-range">hasta 2 min</span>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <div class="option-group option-row">
+          <div class="option-half">
+            <label class="option-label" for="num-clips">Cantidad de clips</label>
+            <select id="num-clips" class="option-select">
+              <option value="auto">IA decide (Recomendado)</option>
+              <option value="3">3 clips</option>
+              <option value="5">5 clips</option>
+              <option value="8">8 clips</option>
+              <option value="10">10 clips</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="option-group">
+          <label class="option-label" for="custom-prompt">
+            ¿Qué momentos querés extraer?
+            <span class="option-optional">(opcional)</span>
+          </label>
+          <textarea
+            id="custom-prompt"
+            class="option-textarea"
+            placeholder="Ej: Solo caídas épicas y trucos imposibles..."
+            rows="2"
+          ></textarea>
+        </div>
+
+        <button class="btn-primary btn-analyze" id="btn-analizar">Analizar ⚡</button>
+      </div>
+
+      <div id="error-msg" class="error-msg hidden"></div>
+
+      <div id="jobs-section" class="jobs-section hidden"></div>
+
+      <!-- History section -->
+      <div id="history-section" class="history-section hidden">
+        <div class="history-header">
+          <h2 class="history-title">Tus clips anteriores</h2>
+        </div>
+        <div id="history-list" class="history-list"></div>
+      </div>
+    </main>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="firebase-config.js"></script>
+  <script src="upload.js"></script>
+</body>
+</html>
