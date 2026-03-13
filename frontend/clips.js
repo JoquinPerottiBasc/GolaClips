@@ -80,7 +80,7 @@ function renderClips() {
     const srcUrl = clip.url || `${API_BASE}/clips/${jobId}/${clip.filename}`;
     return `
       <div class="clip-card">
-        <video class="clip-video" controls preload="metadata">
+        <video class="clip-video" controls preload="metadata" ${clip.thumb_url ? `poster="${clip.thumb_url}"` : ''}>
           <source src="${srcUrl}" type="video/mp4">
         </video>
         <div class="clip-info">

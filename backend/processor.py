@@ -44,6 +44,24 @@ def compress_video_for_analysis(video_path: str, output_path: str):
     )
 
 
+def generate_thumbnail(clip_path: str, thumb_path: str, clip_duration: float):
+    """Extract a JPEG frame from the middle of a clip."""
+    mid = max(0.0, clip_duration / 2)
+    subprocess.run(
+        [
+            "ffmpeg", "-y",
+            "-ss", str(mid),
+            "-i", clip_path,
+            "-frames:v", "1",
+            "-q:v", "3",
+            "-vf", "scale=640:-2",
+            thumb_path,
+        ],
+        capture_output=True,
+        check=True,
+    )
+
+
 def cut_clip(video_path: str, start: float, end: float, out_path: str):
     subprocess.run(
         [
@@ -123,8 +141,17 @@ def process_video(
 
         cut_clip(video_path, moment["start_sec"], moment["end_sec"], out_path)
 
+        # Generate thumbnail from the middle frame of the clip
+        thumb_filename = f"clip_{i + 1:02d}.jpg"
+        thumb_path = str(out_dir / thumb_filename)
+        try:
+            generate_thumbnail(out_path, thumb_path, moment["end_sec"] - moment["start_sec"])
+        except Exception:
+            thumb_filename = None
+
         clips.append({
             "filename": filename,
+            "thumbnail": thumb_filename,
             "start": moment["start_sec"],
             "end": moment["end_sec"],
             "description": moment["description"],

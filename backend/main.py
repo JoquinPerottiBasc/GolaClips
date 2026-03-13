@@ -100,10 +100,17 @@ def run_processing(job_id: str, video_path: str, api_key: str, openai_api_key: s
             local_path = str(CLIPS_DIR / job_id / clip["filename"])
             # Always set a local URL so active jobs work immediately
             clip["url"] = f"/clips/{job_id}/{clip['filename']}"
+            if clip.get("thumbnail"):
+                clip["thumb_url"] = f"/clips/{job_id}/{clip['thumbnail']}"
 
             if user_id is not None:
                 try:
                     storage.upload_clip(local_path, r2_key)
+                    # Upload thumbnail to R2 too
+                    if clip.get("thumbnail"):
+                        thumb_local = str(CLIPS_DIR / job_id / clip["thumbnail"])
+                        thumb_r2_key = f"clips/{job_id}/{clip['thumbnail']}"
+                        storage.upload_clip(thumb_local, thumb_r2_key)
                     database.insert_clip(
                         job_id=job_id,
                         filename=clip["filename"],
@@ -203,9 +210,18 @@ async def get_status(job_id: str):
 
     clips = []
     for c in job.get("clips", []):
+        clip_url = storage.get_presigned_url(c["r2_key"]) if c.get("r2_key") else ""
+        if not clip_url:
+            clip_url = f"/clips/{job_id}/{c['filename']}"
+        thumb_name = c["filename"].replace(".mp4", ".jpg")
+        thumb_r2_key = c["r2_key"].replace(".mp4", ".jpg") if c.get("r2_key") else ""
+        thumb_url = storage.get_presigned_url(thumb_r2_key) if thumb_r2_key else ""
+        if not thumb_url:
+            thumb_url = f"/clips/{job_id}/{thumb_name}"
         clips.append({
             "filename": c["filename"],
-            "url": storage.get_presigned_url(c["r2_key"]) if c.get("r2_key") else "",
+            "url": clip_url,
+            "thumb_url": thumb_url,
             "start": c["start_sec"],
             "end": c["end_sec"],
             "score": c["score"],
@@ -263,9 +279,18 @@ async def get_history(current_user: dict = Depends(get_current_user)):
     for job in jobs_from_db:
         clips = []
         for c in job.get("clips", []):
+            clip_url = storage.get_presigned_url(c["r2_key"]) if c.get("r2_key") else ""
+            if not clip_url:
+                clip_url = f"/clips/{job['id']}/{c['filename']}"
+            thumb_name = c["filename"].replace(".mp4", ".jpg")
+            thumb_r2_key = c["r2_key"].replace(".mp4", ".jpg") if c.get("r2_key") else ""
+            thumb_url = storage.get_presigned_url(thumb_r2_key) if thumb_r2_key else ""
+            if not thumb_url:
+                thumb_url = f"/clips/{job['id']}/{thumb_name}"
             clips.append({
                 "filename": c["filename"],
-                "url": storage.get_presigned_url(c["r2_key"]) if c.get("r2_key") else "",
+                "url": clip_url,
+                "thumb_url": thumb_url,
                 "start": c["start_sec"],
                 "end": c["end_sec"],
                 "score": c["score"],

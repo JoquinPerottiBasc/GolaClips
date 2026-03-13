@@ -138,7 +138,7 @@ function renderHistoryJob(job) {
           const srcUrl = clip.url || `${API_BASE}/clips/${job.job_id}/${clip.filename}`;
           return `
           <div class="clip-card">
-            <video class="clip-video" controls preload="none">
+            <video class="clip-video" controls preload="none" ${clip.url ? `poster="${clip.url.replace('.mp4', '.jpg')}"` : ''}>
               <source src="${srcUrl}" type="video/mp4">
             </video>
             <div class="clip-info">
@@ -412,7 +412,7 @@ function renderInlineGrid(jobId) {
     const srcUrl = clip.url || `${API_BASE}/clips/${jobId}/${clip.filename}?v=${getClipVersion(jobId, clip.filename)}`;
     return `
       <div class="clip-card">
-        <video class="clip-video" controls preload="metadata">
+        <video class="clip-video" controls preload="metadata" ${clip.thumb_url ? `poster="${clip.thumb_url}"` : ''}>
           <source src="${srcUrl}" type="video/mp4">
         </video>
         <div class="clip-info">
