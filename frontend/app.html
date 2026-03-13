@@ -7,6 +7,101 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
+  <style>
+    .header-credits {
+      padding: 0.4rem 0.875rem;
+      background: rgba(124,58,237,0.15);
+      border: 1px solid rgba(124,58,237,0.3);
+      border-radius: 8px;
+      color: #a78bfa;
+      font-size: 0.8rem;
+      font-weight: 700;
+      text-decoration: none;
+      transition: background 0.2s;
+      white-space: nowrap;
+    }
+    .header-credits:hover { background: rgba(124,58,237,0.28); }
+
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.72);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+    .modal-overlay.hidden { display: none; }
+    .modal-card {
+      background: #18181f;
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 16px;
+      padding: 2rem;
+      max-width: 380px;
+      width: 90%;
+    }
+    .modal-title {
+      font-size: 1.15rem;
+      font-weight: 800;
+      letter-spacing: -0.3px;
+      margin-bottom: 1.25rem;
+    }
+    .quote-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.7rem 0;
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+      font-size: 0.875rem;
+    }
+    .quote-row:last-of-type { border-bottom: none; }
+    .quote-lbl { color: rgba(238,238,245,0.55); }
+    .quote-val { font-weight: 700; }
+    .quote-val.insufficient { color: #f43f5e; }
+    .quote-alert {
+      margin-top: 1rem;
+      padding: 0.75rem 1rem;
+      background: rgba(244,63,94,0.1);
+      border: 1px solid rgba(244,63,94,0.3);
+      border-radius: 8px;
+      font-size: 0.8rem;
+      color: #f87171;
+    }
+    .quote-alert a { color: #f87171; font-weight: 600; }
+    .modal-actions {
+      display: flex;
+      gap: 0.75rem;
+      margin-top: 1.5rem;
+      justify-content: flex-end;
+    }
+    .btn-modal-cancel {
+      padding: 0.65rem 1.25rem;
+      border-radius: 9px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: transparent;
+      color: rgba(238,238,245,0.6);
+      font-size: 0.875rem;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      transition: background 0.15s;
+    }
+    .btn-modal-cancel:hover { background: rgba(255,255,255,0.06); }
+    .btn-modal-confirm {
+      padding: 0.65rem 1.5rem;
+      border-radius: 9px;
+      background: linear-gradient(135deg, #7c3aed, #22d3ee);
+      color: #fff;
+      font-size: 0.875rem;
+      font-weight: 700;
+      border: none;
+      cursor: pointer;
+      font-family: inherit;
+      transition: opacity 0.2s;
+    }
+    .btn-modal-confirm:hover { opacity: 0.85; }
+    .btn-modal-confirm:disabled { opacity: 0.4; cursor: not-allowed; }
+  </style>
 </head>
 <body>
   <div class="container">
@@ -16,6 +111,7 @@
         <p class="tagline">Subí tus videos de deportes. La IA encuentra los mejores momentos.</p>
       </div>
       <div class="header-user hidden" id="header-user">
+        <a href="dashboard.html" class="header-credits" id="header-credits-link">💳 $<span id="header-credits-usd">...</span></a>
         <img id="user-avatar" class="user-avatar" src="" alt="" onerror="this.style.display='none'">
         <span id="user-name" class="user-name"></span>
         <button class="btn-logout" onclick="signOut()">Salir</button>
@@ -105,6 +201,18 @@
         <div id="history-list" class="history-list"></div>
       </div>
     </main>
+  </div>
+
+  <!-- Quote confirmation modal -->
+  <div id="quote-modal" class="modal-overlay hidden">
+    <div class="modal-card">
+      <div class="modal-title">Confirmar análisis</div>
+      <div id="quote-info"></div>
+      <div class="modal-actions">
+        <button class="btn-modal-cancel" onclick="dismissQuoteModal()">Cancelar</button>
+        <button class="btn-modal-confirm" id="btn-confirm-quote" onclick="confirmQuote()">Analizar ⚡</button>
+      </div>
+    </div>
   </div>
 
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>

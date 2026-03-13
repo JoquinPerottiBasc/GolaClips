@@ -42,6 +42,7 @@ const VIDEO_EXTENSIONS = ['mp4', 'mov', 'avi', 'mkv', 'webm', 'wmv', 'flv', 'ts'
 
 let selectedFiles = [];
 let _currentUser = null;
+let _resolveQuote = null;
 
 // Version counter per clip for cache-busting after extend
 const _clipVersions = {};
@@ -83,6 +84,18 @@ firebase.auth().onAuthStateChanged(async (user) => {
     if (user.photoURL) userAvatar.src = user.photoURL;
     userName.textContent = user.displayName || user.email;
   }
+
+  // Load credits display
+  try {
+    const token = await user.getIdToken();
+    const res = await fetch(`${API_BASE}/api/me/credits`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (res.ok) {
+      const data = await res.json();
+      updateCreditsDisplay(data.credits_usd);
+    }
+  } catch (e) { /* non-critical */ }
 
   // Load history
   loadHistory();
@@ -188,6 +201,60 @@ fileInput.addEventListener('change', () => {
 });
 btnAnalizar.addEventListener('click', submitAll);
 
+// --- Credits helpers ---
+function updateCreditsDisplay(usd) {
+  const el = document.getElementById('header-credits-usd');
+  if (el) el.textContent = (parseFloat(usd) || 0).toFixed(2);
+}
+
+function getFileDuration(file) {
+  return new Promise((resolve) => {
+    const video = document.createElement('video');
+    video.preload = 'metadata';
+    video.onloadedmetadata = () => {
+      URL.revokeObjectURL(video.src);
+      resolve(isFinite(video.duration) ? video.duration : 0);
+    };
+    video.onerror = () => resolve(0);
+    video.src = URL.createObjectURL(file);
+  });
+}
+
+function showQuoteModal(quote, numFiles) {
+  return new Promise((resolve) => {
+    _resolveQuote = resolve;
+    const totalMins = (quote.duration_seconds / 60).toFixed(1);
+    const canAfford = quote.can_afford;
+
+    document.getElementById('quote-info').innerHTML = `
+      <div class="quote-row">
+        <span class="quote-lbl">${numFiles} video${numFiles > 1 ? 's' : ''} · ${totalMins} min</span>
+        <span class="quote-val">~$${quote.cost_usd.toFixed(2)} USD</span>
+      </div>
+      <div class="quote-row">
+        <span class="quote-lbl">Tu saldo</span>
+        <span class="quote-val ${canAfford ? '' : 'insufficient'}">$${quote.user_credits_usd.toFixed(2)} USD</span>
+      </div>
+      ${!canAfford ? `
+      <div class="quote-alert">
+        Saldo insuficiente. <a href="dashboard.html">Cargar créditos →</a>
+      </div>` : ''}
+    `;
+    document.getElementById('btn-confirm-quote').disabled = !canAfford;
+    document.getElementById('quote-modal').classList.remove('hidden');
+  });
+}
+
+function dismissQuoteModal() {
+  document.getElementById('quote-modal').classList.add('hidden');
+  if (_resolveQuote) { _resolveQuote(false); _resolveQuote = null; }
+}
+
+function confirmQuote() {
+  document.getElementById('quote-modal').classList.add('hidden');
+  if (_resolveQuote) { _resolveQuote(true); _resolveQuote = null; }
+}
+
 // --- Helpers ---
 function isVideo(file) {
   if (file.type.startsWith('video/')) return true;
@@ -251,6 +318,31 @@ function renderFileList() {
 // --- Submit ---
 async function submitAll() {
   if (selectedFiles.length === 0) return;
+
+  const token = await getToken();
+  if (!token) { window.location.href = 'login.html'; return; }
+
+  // Get durations from browser to show cost quote
+  const durations = await Promise.all(selectedFiles.map(getFileDuration));
+  const totalDuration = durations.reduce((a, b) => a + b, 0);
+
+  if (totalDuration > 0) {
+    try {
+      const res = await fetch(
+        `${API_BASE}/api/upload/quote?duration_seconds=${Math.ceil(totalDuration)}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (res.ok) {
+        const quote = await res.json();
+        updateCreditsDisplay(quote.user_credits_usd);
+        const confirmed = await showQuoteModal(quote, selectedFiles.length);
+        if (!confirmed) return;
+      }
+    } catch (e) {
+      // If quote fails for any reason, proceed (server will validate credits)
+      console.warn('Quote fetch failed, proceeding:', e);
+    }
+  }
 
   const durationVal = document.querySelector('input[name="duration"]:checked').value;
   const { min, max } = DURATION_MAP[durationVal];

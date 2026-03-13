@@ -5,8 +5,9 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from contextlib import asynccontextmanager
 
+import stripe
 from dotenv import load_dotenv
-from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Depends
+from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Depends, Request
 from fastapi.concurrency import run_in_threadpool
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -18,6 +19,10 @@ import storage
 from auth import get_current_user
 
 load_dotenv()
+
+# Pricing: $20/hour = $0.00556/second of video
+PRICE_PER_SECOND_USD = 20 / 3600
+FREE_MONTHLY_SECONDS = 1512  # ~25 min = $7 worth
 
 UPLOADS_DIR = Path(__file__).parent / "uploads"
 UPLOADS_DIR.mkdir(exist_ok=True)
@@ -49,6 +54,9 @@ async def _cleanup_expired_loop():
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    stripe.api_key = os.getenv("STRIPE_SECRET_KEY", "")
+    if not stripe.api_key:
+        print("⚠️  WARNING: STRIPE_SECRET_KEY not configured — payments will fail")
     if not os.getenv("GEMINI_API_KEY"):
         print("⚠️  WARNING: GEMINI_API_KEY not configured in .env")
     if not os.getenv("FIREBASE_SERVICE_ACCOUNT_JSON"):
@@ -140,6 +148,17 @@ def run_processing(job_id: str, video_path: str, api_key: str, openai_api_key: s
                 database.update_job_status(job_id, "error", str(e))
             except Exception:
                 pass
+            # Refund credits on processing failure
+            try:
+                job_db = database.get_job_with_clips(job_id)
+                if job_db:
+                    video_dur = int(get_video_duration(
+                        str(UPLOADS_DIR / f"{job_id}_original{Path(video_path).suffix}")
+                    ) if Path(video_path).exists() else 0)
+                    if video_dur:
+                        database.add_credits(user_id, video_dur, 0, None)
+            except Exception:
+                pass
     finally:
         # Keep original video so clips can be re-cut (extend feature)
         try:
@@ -180,10 +199,24 @@ async def upload_video(
         while chunk := await file.read(1024 * 1024):
             f.write(chunk)
 
+    # Check credits before processing
+    video_duration = get_video_duration(str(video_path))
+    user_credits = database.get_user_credits(current_user["id"])
+    if user_credits < video_duration:
+        video_path.unlink(missing_ok=True)
+        cost_usd = round(video_duration * PRICE_PER_SECOND_USD, 2)
+        have_usd = round(user_credits * PRICE_PER_SECOND_USD, 2)
+        raise HTTPException(
+            status_code=402,
+            detail=f"Créditos insuficientes. Este video cuesta ${cost_usd} y tenés ${have_usd}."
+        )
+
     jobs[job_id] = {"status": "queued", "clips": [], "error": None}
 
     user_id = current_user["id"]
     database.create_job(job_id, user_id, file.filename or "video")
+    # Deduct credits upfront (refund on error is handled below)
+    database.deduct_credits(user_id, int(video_duration), job_id)
 
     _executor.submit(run_processing, job_id, str(video_path), api_key,
                      openai_api_key, duration_min, duration_max, num_clips, custom_prompt,
@@ -304,6 +337,110 @@ async def get_history(current_user: dict = Depends(get_current_user)):
             "clips": clips,
         })
     return result
+
+
+class CheckoutRequest(BaseModel):
+    amount_usd: float  # amount in USD to charge
+
+
+@app.get("/api/upload/quote")
+async def quote_video(duration_seconds: float, current_user: dict = Depends(get_current_user)):
+    """Return cost in credits and whether user can afford it."""
+    cost_usd = duration_seconds * PRICE_PER_SECOND_USD
+    user_credits = await run_in_threadpool(database.get_user_credits, current_user["id"])
+    user_usd = user_credits * PRICE_PER_SECOND_USD
+
+    # Apply monthly free credits on first quote of the session
+    await run_in_threadpool(
+        database.apply_monthly_free_credits, current_user["id"], FREE_MONTHLY_SECONDS
+    )
+    user_credits = await run_in_threadpool(database.get_user_credits, current_user["id"])
+    user_usd = user_credits * PRICE_PER_SECOND_USD
+
+    return {
+        "duration_seconds": duration_seconds,
+        "cost_usd": round(cost_usd, 2),
+        "cost_seconds": int(duration_seconds),
+        "user_credits_seconds": user_credits,
+        "user_credits_usd": round(user_usd, 2),
+        "can_afford": user_credits >= duration_seconds,
+    }
+
+
+@app.post("/api/stripe/checkout")
+async def create_checkout(body: CheckoutRequest, current_user: dict = Depends(get_current_user)):
+    """Create a Stripe Checkout session to top up credits."""
+    if body.amount_usd < 1:
+        raise HTTPException(status_code=400, detail="Mínimo $1 USD")
+
+    credits_seconds = int(body.amount_usd / PRICE_PER_SECOND_USD)
+    base_url = os.getenv("APP_URL", "http://127.0.0.1:8000")
+
+    session = stripe.checkout.Session.create(
+        payment_method_types=["card"],
+        line_items=[{
+            "price_data": {
+                "currency": "usd",
+                "product_data": {
+                    "name": "GolaClips — Créditos",
+                    "description": f"{round(body.amount_usd / PRICE_PER_SECOND_USD / 60, 1)} minutos de video",
+                },
+                "unit_amount": int(body.amount_usd * 100),
+            },
+            "quantity": 1,
+        }],
+        mode="payment",
+        success_url=f"{base_url}/dashboard.html?payment=success",
+        cancel_url=f"{base_url}/dashboard.html?payment=cancelled",
+        metadata={
+            "user_id": str(current_user["id"]),
+            "credits_seconds": str(credits_seconds),
+            "amount_usd": str(body.amount_usd),
+        },
+    )
+    return {"checkout_url": session.url}
+
+
+@app.post("/api/stripe/webhook")
+async def stripe_webhook(request: Request):
+    """Handle Stripe webhook events."""
+    payload = await request.body()
+    sig_header = request.headers.get("stripe-signature", "")
+    webhook_secret = os.getenv("STRIPE_WEBHOOK_SECRET", "")
+
+    try:
+        event = stripe.Webhook.construct_event(payload, sig_header, webhook_secret)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid webhook signature")
+
+    if event["type"] == "checkout.session.completed":
+        session = event["data"]["object"]
+        if session.get("payment_status") == "paid":
+            meta = session.get("metadata", {})
+            user_id = int(meta.get("user_id", 0))
+            credits_seconds = int(meta.get("credits_seconds", 0))
+            amount_usd = float(meta.get("amount_usd", 0))
+            if user_id and credits_seconds:
+                await run_in_threadpool(
+                    database.add_credits, user_id, credits_seconds, amount_usd, session["id"]
+                )
+
+    return {"ok": True}
+
+
+@app.get("/api/me/credits")
+async def get_credits(current_user: dict = Depends(get_current_user)):
+    """Return current credits and recent transactions."""
+    await run_in_threadpool(
+        database.apply_monthly_free_credits, current_user["id"], FREE_MONTHLY_SECONDS
+    )
+    credits_seconds = await run_in_threadpool(database.get_user_credits, current_user["id"])
+    transactions = await run_in_threadpool(database.get_user_transactions, current_user["id"])
+    return {
+        "credits_seconds": credits_seconds,
+        "credits_usd": round(credits_seconds * PRICE_PER_SECOND_USD, 2),
+        "transactions": transactions,
+    }
 
 
 @app.get("/health")

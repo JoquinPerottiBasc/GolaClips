@@ -78,6 +78,20 @@ def init_db():
                 email {text_type} NOT NULL,
                 name {text_type},
                 avatar_url {text_type},
+                credits_seconds INTEGER NOT NULL DEFAULT 0,
+                monthly_reset_at TIMESTAMP,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        cur.execute(f"""
+            CREATE TABLE IF NOT EXISTS transactions (
+                id {id_type},
+                user_id INTEGER REFERENCES users(id),
+                type {text_type} NOT NULL,
+                amount_usd REAL,
+                credits_seconds INTEGER NOT NULL,
+                description {text_type},
+                stripe_session_id {text_type},
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
@@ -181,6 +195,79 @@ def get_job_with_clips(job_id: str):
         )
         job["clips"] = _rows(cur)
         return job
+
+
+def get_user_credits(user_id: int) -> int:
+    """Return user's current credits in seconds."""
+    with _conn() as cur:
+        cur.execute(f"SELECT credits_seconds FROM users WHERE id = {PH}", (user_id,))
+        row = _row(cur)
+        return row["credits_seconds"] if row else 0
+
+
+def apply_monthly_free_credits(user_id: int, free_seconds: int = 1512):
+    """Top up to free_seconds if user has less. Resets monthly. Default: 25.2 min ($7 at $20/hr)."""
+    with _conn() as cur:
+        cur.execute(f"SELECT credits_seconds, monthly_reset_at FROM users WHERE id = {PH}", (user_id,))
+        row = _row(cur)
+        if not row:
+            return
+        now = datetime.utcnow()
+        last_reset = row["monthly_reset_at"]
+        if last_reset:
+            if isinstance(last_reset, str):
+                last_reset = datetime.fromisoformat(last_reset)
+            # Only reset once per month
+            if (now - last_reset).days < 30:
+                return
+        # Top up only if below the free threshold
+        if row["credits_seconds"] < free_seconds:
+            cur.execute(f"""
+                UPDATE users SET credits_seconds = {PH}, monthly_reset_at = {PH} WHERE id = {PH}
+            """, (free_seconds, now.isoformat(), user_id))
+            cur.execute(f"""
+                INSERT INTO transactions (user_id, type, credits_seconds, description)
+                VALUES ({PH}, 'free_monthly', {PH}, 'Créditos mensuales gratuitos')
+            """, (user_id, free_seconds - row["credits_seconds"]))
+        else:
+            cur.execute(f"UPDATE users SET monthly_reset_at = {PH} WHERE id = {PH}",
+                        (now.isoformat(), user_id))
+
+
+def add_credits(user_id: int, credits_seconds: int, amount_usd: float,
+                stripe_session_id: str = None):
+    """Add purchased credits to user account and log transaction."""
+    with _conn() as cur:
+        cur.execute(f"""
+            UPDATE users SET credits_seconds = credits_seconds + {PH} WHERE id = {PH}
+        """, (credits_seconds, user_id))
+        cur.execute(f"""
+            INSERT INTO transactions (user_id, type, amount_usd, credits_seconds,
+                                      description, stripe_session_id)
+            VALUES ({PH}, 'purchase', {PH}, {PH}, 'Recarga de créditos', {PH})
+        """, (user_id, amount_usd, credits_seconds, stripe_session_id))
+
+
+def deduct_credits(user_id: int, credits_seconds: int, job_id: str):
+    """Deduct credits after video processing."""
+    with _conn() as cur:
+        cur.execute(f"""
+            UPDATE users SET credits_seconds = credits_seconds - {PH} WHERE id = {PH}
+        """, (credits_seconds, user_id))
+        cur.execute(f"""
+            INSERT INTO transactions (user_id, type, credits_seconds, description)
+            VALUES ({PH}, 'usage', {PH}, {PH})
+        """, (user_id, -credits_seconds, f'Video procesado: {job_id}'))
+
+
+def get_user_transactions(user_id: int, limit: int = 20) -> list:
+    """Return recent transactions for a user."""
+    with _conn() as cur:
+        cur.execute(f"""
+            SELECT * FROM transactions WHERE user_id = {PH}
+            ORDER BY created_at DESC LIMIT {PH}
+        """, (user_id, limit))
+        return _rows(cur)
 
 
 def delete_expired_jobs() -> list:
