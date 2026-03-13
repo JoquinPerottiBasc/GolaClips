@@ -69,6 +69,15 @@ header h1 {
   background-clip: text;
 }
 
+.logo-img {
+  height: 34px;
+  width: auto;
+  background: #fff;
+  border-radius: 8px;
+  padding: 4px 10px;
+  display: block;
+}
+
 .tagline {
   color: var(--text-muted);
   font-size: 0.875rem;

@@ -46,14 +46,17 @@
       border-bottom: 1px solid var(--border);
     }
     .nav-logo {
-      font-size: 1.25rem;
-      font-weight: 800;
-      background: var(--gradient);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
       text-decoration: none;
-      letter-spacing: -0.3px;
+      display: flex;
+      align-items: center;
+    }
+    .logo-img {
+      height: 34px;
+      width: auto;
+      background: #fff;
+      border-radius: 8px;
+      padding: 4px 10px;
+      display: block;
     }
     .nav-cta {
       display: inline-flex;
@@ -563,7 +566,9 @@
 
   <!-- NAV -->
   <nav id="nav">
-    <a href="index.html" class="nav-logo">⚡ GolaClips</a>
+    <a href="index.html" class="nav-logo">
+      <img src="assets/logo.png" alt="GolaClips" class="logo-img">
+    </a>
     <a href="login.html" class="nav-cta">Iniciar sesión →</a>
   </nav>
 
@@ -748,7 +753,7 @@
 
   <!-- FOOTER -->
   <footer>
-    <span class="footer-logo">⚡ GolaClips</span>
+    <img src="assets/logo.png" alt="GolaClips" class="logo-img">
     <span class="footer-copy">© 2026 GolaClips. Todos los derechos reservados.</span>
   </footer>
 
