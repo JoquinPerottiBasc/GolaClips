@@ -370,8 +370,8 @@ async def quote_video(duration_seconds: float, current_user: dict = Depends(get_
 @app.post("/api/stripe/checkout")
 async def create_checkout(body: CheckoutRequest, current_user: dict = Depends(get_current_user)):
     """Create a Stripe Checkout session to top up credits."""
-    if body.amount_usd < 1:
-        raise HTTPException(status_code=400, detail="Mínimo $1 USD")
+    if body.amount_usd < 10:
+        raise HTTPException(status_code=400, detail="Mínimo $10 USD")
 
     credits_seconds = int(body.amount_usd / PRICE_PER_SECOND_USD)
     base_url = os.getenv("APP_URL", "http://127.0.0.1:8000")

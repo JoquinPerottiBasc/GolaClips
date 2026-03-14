@@ -359,15 +359,15 @@
             <div class="topup-section">
               <div class="topup-title">Cargar créditos</div>
               <div class="topup-presets">
-                <button class="preset-btn" onclick="setAmount(5, this)">$5</button>
                 <button class="preset-btn" onclick="setAmount(10, this)">$10</button>
                 <button class="preset-btn" onclick="setAmount(20, this)">$20</button>
                 <button class="preset-btn" onclick="setAmount(50, this)">$50</button>
+                <button class="preset-btn" onclick="setAmount(100, this)">$100</button>
               </div>
               <div class="topup-custom">
                 <div class="topup-input-wrap">
                   <span>$</span>
-                  <input type="number" id="topup-amount" class="topup-input" min="1" step="1"
+                  <input type="number" id="topup-amount" class="topup-input" min="10" step="1"
                     placeholder="0" oninput="updatePreview()">
                   <span style="color:var(--text-muted);font-size:0.8rem">USD</span>
                 </div>
@@ -426,14 +426,18 @@
       loadCredits();
       loadVideos();
 
-      // Payment result banner
+      // Payment result banner — read once then clean URL so it doesn't show on reload
       const params = new URLSearchParams(window.location.search);
-      if (params.get('payment') === 'success') {
-        document.getElementById('payment-success').style.display = 'flex';
-        setTimeout(() => document.getElementById('payment-success').style.display = 'none', 6000);
-      } else if (params.get('payment') === 'cancelled') {
-        document.getElementById('payment-cancelled').style.display = 'flex';
-        setTimeout(() => document.getElementById('payment-cancelled').style.display = 'none', 5000);
+      const paymentResult = params.get('payment');
+      if (paymentResult) {
+        history.replaceState({}, '', '/dashboard.html');
+        if (paymentResult === 'success') {
+          document.getElementById('payment-success').style.display = 'flex';
+          setTimeout(() => document.getElementById('payment-success').style.display = 'none', 6000);
+        } else if (paymentResult === 'cancelled') {
+          document.getElementById('payment-cancelled').style.display = 'flex';
+          setTimeout(() => document.getElementById('payment-cancelled').style.display = 'none', 5000);
+        }
       }
     });
 
@@ -442,19 +446,22 @@
         const res = await fetch(`${API_BASE}/api/me/credits`, {
           headers: { Authorization: `Bearer ${_token}` }
         });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
-        const usd = data.credits_usd.toFixed(2);
-        const mins = Math.floor(data.credits_seconds / 60);
+        const usd = (data.credits_usd || 0).toFixed(2);
+        const mins = Math.floor((data.credits_seconds || 0) / 60);
 
         document.getElementById('credits-usd-big').textContent = `$${usd}`;
         document.getElementById('credits-min-label').textContent = `${mins} minuto${mins !== 1 ? 's' : ''} disponibles`;
         document.getElementById('sidebar-credits-usd').textContent = `$${usd}`;
         document.getElementById('sidebar-credits-min').textContent = `${mins} min disponibles`;
 
-        renderTransactions(data.transactions, 'tx-list');
-        renderTransactions(data.transactions, 'billing-list');
+        renderTransactions(data.transactions || [], 'tx-list');
+        renderTransactions(data.transactions || [], 'billing-list');
       } catch (e) {
         console.error('Error loading credits:', e);
+        document.getElementById('credits-usd-big').textContent = 'Error';
+        document.getElementById('credits-min-label').textContent = 'No se pudieron cargar los créditos';
       }
     }
 
@@ -537,13 +544,13 @@
       const val = parseFloat(document.getElementById('topup-amount').value) || 0;
       const mins = Math.floor(val / (20 / 60));
       const btn = document.getElementById('btn-pay');
-      if (val >= 1) {
+      if (val >= 10) {
         document.getElementById('topup-preview').innerHTML =
           `= <strong>${mins} minutos</strong> de video`;
         btn.disabled = false;
         btn.textContent = `Pagar $${val.toFixed(2)} USD →`;
       } else {
-        document.getElementById('topup-preview').textContent = 'Mínimo $1 USD';
+        document.getElementById('topup-preview').textContent = 'Mínimo $10 USD';
         btn.disabled = true;
         btn.textContent = 'Pagar con Stripe →';
       }

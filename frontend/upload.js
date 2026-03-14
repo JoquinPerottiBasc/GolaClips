@@ -93,9 +93,13 @@ firebase.auth().onAuthStateChanged(async (user) => {
     });
     if (res.ok) {
       const data = await res.json();
-      updateCreditsDisplay(data.credits_usd);
+      updateCreditsDisplay(data.credits_usd || 0);
+    } else {
+      updateCreditsDisplay(0);
     }
-  } catch (e) { /* non-critical */ }
+  } catch (e) {
+    updateCreditsDisplay(0);
+  }
 
   // Load history
   loadHistory();
