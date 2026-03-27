@@ -62,21 +62,24 @@ def generate_thumbnail(clip_path: str, thumb_path: str, clip_duration: float):
     )
 
 
-def cut_clip(video_path: str, start: float, end: float, out_path: str):
-    subprocess.run(
-        [
-            "ffmpeg", "-y",
-            "-ss", str(start),
-            "-to", str(end),
-            "-i", video_path,
-            "-c:v", "libx264", "-preset", "fast", "-crf", "23",
-            "-c:a", "aac", "-b:a", "128k",
-            "-movflags", "+faststart",
-            out_path,
-        ],
-        capture_output=True,
-        check=True,
-    )
+def cut_clip(video_path: str, start: float, end: float, out_path: str,
+             add_watermark: bool = False):
+    cmd = [
+        "ffmpeg", "-y",
+        "-ss", str(start),
+        "-to", str(end),
+        "-i", video_path,
+        "-c:v", "libx264", "-preset", "fast", "-crf", "23",
+        "-c:a", "aac", "-b:a", "128k",
+    ]
+    if add_watermark:
+        cmd += [
+            "-vf",
+            "drawtext=text='GolaClips':fontcolor=white:fontsize=24"
+            ":borderw=2:bordercolor=black:x=w-tw-10:y=h-th-10",
+        ]
+    cmd += ["-movflags", "+faststart", out_path]
+    subprocess.run(cmd, capture_output=True, check=True)
 
 
 def process_video(
@@ -89,6 +92,7 @@ def process_video(
     num_clips: str = "auto",
     custom_prompt: str = "",
     openai_api_key: str = "",
+    add_watermark: bool = False,
 ) -> list[dict]:
     """
     Pipeline completo de procesamiento.
@@ -139,7 +143,8 @@ def process_video(
         filename = f"clip_{i + 1:02d}.mp4"
         out_path = str(out_dir / filename)
 
-        cut_clip(video_path, moment["start_sec"], moment["end_sec"], out_path)
+        cut_clip(video_path, moment["start_sec"], moment["end_sec"], out_path,
+                 add_watermark=add_watermark)
 
         # Generate thumbnail from the middle frame of the clip
         thumb_filename = f"clip_{i + 1:02d}.jpg"

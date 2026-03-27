@@ -93,12 +93,12 @@ firebase.auth().onAuthStateChanged(async (user) => {
     });
     if (res.ok) {
       const data = await res.json();
-      updateCreditsDisplay(data.credits_usd || 0);
+      updateCreditsDisplay(data);
     } else {
-      updateCreditsDisplay(0);
+      updateCreditsDisplay({ plan: 'free', credits_remaining: 0, credits_total: 30 });
     }
   } catch (e) {
-    updateCreditsDisplay(0);
+    updateCreditsDisplay({ plan: 'free', credits_remaining: 0, credits_total: 30 });
   }
 
   // Load history
@@ -206,9 +206,28 @@ fileInput.addEventListener('change', () => {
 btnAnalizar.addEventListener('click', submitAll);
 
 // --- Credits helpers ---
-function updateCreditsDisplay(usd) {
-  const el = document.getElementById('header-credits-usd');
-  if (el) el.textContent = (parseFloat(usd) || 0).toFixed(2);
+function updateCreditsDisplay(data) {
+  if (!data || typeof data !== 'object') return;
+
+  const displayEl = document.getElementById('header-credits-display');
+  const badgeEl = document.getElementById('header-plan-badge');
+  const upgradeEl = document.getElementById('header-upgrade-link');
+
+  if (displayEl) {
+    displayEl.textContent = `${data.credits_remaining ?? 0}/${data.credits_total ?? 30} créditos`;
+  }
+
+  if (badgeEl && upgradeEl) {
+    if (data.plan === 'pro') {
+      badgeEl.textContent = 'PRO';
+      badgeEl.className = 'header-plan-badge pro';
+      badgeEl.style.display = '';
+      upgradeEl.style.display = 'none';
+    } else {
+      badgeEl.style.display = 'none';
+      upgradeEl.style.display = '';
+    }
+  }
 }
 
 function getFileDuration(file) {
@@ -227,21 +246,24 @@ function getFileDuration(file) {
 function showQuoteModal(quote, numFiles) {
   return new Promise((resolve) => {
     _resolveQuote = resolve;
-    const totalMins = (quote.duration_seconds / 60).toFixed(1);
+    const totalMins = Math.ceil(quote.duration_seconds / 60);
     const canAfford = quote.can_afford;
+    const creditsNeeded = quote.credits_needed;
+    const creditsRemaining = quote.credits_remaining;
+    const creditsTotal = quote.credits_total;
 
     document.getElementById('quote-info').innerHTML = `
       <div class="quote-row">
         <span class="quote-lbl">${numFiles} video${numFiles > 1 ? 's' : ''} · ${totalMins} min</span>
-        <span class="quote-val">~$${quote.cost_usd.toFixed(2)} USD</span>
+        <span class="quote-val">${creditsNeeded} crédito${creditsNeeded !== 1 ? 's' : ''}</span>
       </div>
       <div class="quote-row">
-        <span class="quote-lbl">Tu saldo</span>
-        <span class="quote-val ${canAfford ? '' : 'insufficient'}">$${quote.user_credits_usd.toFixed(2)} USD</span>
+        <span class="quote-lbl">Créditos disponibles</span>
+        <span class="quote-val ${canAfford ? '' : 'insufficient'}">${creditsRemaining}/${creditsTotal}</span>
       </div>
       ${!canAfford ? `
       <div class="quote-alert">
-        Saldo insuficiente. <a href="dashboard.html">Cargar créditos →</a>
+        No tenés suficientes créditos este mes. Te quedan ${creditsRemaining} crédito${creditsRemaining !== 1 ? 's' : ''}.
       </div>` : ''}
     `;
     document.getElementById('btn-confirm-quote').disabled = !canAfford;
@@ -338,7 +360,11 @@ async function submitAll() {
       );
       if (res.ok) {
         const quote = await res.json();
-        updateCreditsDisplay(quote.user_credits_usd);
+        updateCreditsDisplay({
+          plan: quote.plan,
+          credits_remaining: quote.credits_remaining,
+          credits_total: quote.credits_total,
+        });
         const confirmed = await showQuoteModal(quote, selectedFiles.length);
         if (!confirmed) return;
       }

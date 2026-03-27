@@ -8,6 +8,11 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <style>
+    .header-credits-wrap {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
     .header-credits {
       padding: 0.4rem 0.875rem;
       background: rgba(124,58,237,0.15);
@@ -16,11 +21,28 @@
       color: #a78bfa;
       font-size: 0.8rem;
       font-weight: 700;
-      text-decoration: none;
-      transition: background 0.2s;
       white-space: nowrap;
     }
-    .header-credits:hover { background: rgba(124,58,237,0.28); }
+    .header-plan-badge {
+      padding: 0.25rem 0.6rem;
+      border-radius: 20px;
+      font-size: 0.7rem;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+    .header-plan-badge.pro {
+      background: #f59e0b;
+      color: #1a1000;
+    }
+    .header-upgrade-link {
+      font-size: 0.75rem;
+      color: #a78bfa;
+      text-decoration: none;
+      border-bottom: 1px dashed rgba(167,139,250,0.4);
+      white-space: nowrap;
+    }
+    .header-upgrade-link:hover { color: #c4b5fd; border-bottom-color: #c4b5fd; }
 
     .modal-overlay {
       position: fixed;
@@ -111,7 +133,11 @@
         <p class="tagline">Subí tus videos de deportes. La IA encuentra los mejores momentos.</p>
       </div>
       <div class="header-user hidden" id="header-user">
-        <a href="dashboard.html" class="header-credits" id="header-credits-link">💳 $<span id="header-credits-usd">...</span></a>
+        <div class="header-credits-wrap">
+          <span class="header-plan-badge" id="header-plan-badge" style="display:none"></span>
+          <span class="header-credits" id="header-credits-display">...</span>
+          <a href="#" class="header-upgrade-link" id="header-upgrade-link" style="display:none">Mejorar a Pro</a>
+        </div>
         <img id="user-avatar" class="user-avatar" src="" alt="" onerror="this.style.display='none'">
         <span id="user-name" class="user-name"></span>
         <button class="btn-logout" onclick="signOut()">Salir</button>

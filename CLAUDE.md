@@ -6,11 +6,19 @@ GolaClips es un MVP (Producto Mínimo Viable) de un SaaS que genera automáticam
 Esta es la primera versión. Vamos a ir agregando funcionalidades de forma incremental después de que el MVP funcione. Tené eso en cuenta: no sobre-engineerear, no agregar cosas que no se pidieron.
 
 ## Stack Tecnológico
-- Frontend: Next.js 14 con App Router (deployado en Vercel)
-- Backend: Node.js con Express (deployado en Railway)
-- Análisis de video: Google Gemini API
-- Procesamiento de video: FFmpeg
-- Storage: local para el MVP, migrar a cloud después
+- Frontend: HTML + CSS + JS vanilla, servido por FastAPI desde `/frontend`
+- Backend: Python + FastAPI + FFmpeg + Google Gemini API
+- Auth: Firebase Auth (Google OAuth) + firebase-admin en backend
+- Storage: Cloudflare R2 (boto3)
+- DB: SQLite (golaclips.db) — migración a PostgreSQL pendiente
+
+## Modelo de negocio
+- Sistema de CRÉDITOS: 1 crédito = 1 minuto de video (redondeado hacia arriba)
+- Plan Free: 30 créditos/mes, clips con marca de agua "GolaClips" (FFmpeg drawtext), clips se borran a los 3 días
+- Plan Pro: 200 créditos/mes ($12/mes), sin marca de agua, clips se borran a los 30 días
+- Créditos se resetean el 1° de cada mes — NO se acumulan, siempre vuelven al total del plan
+- Upgrade a Pro: por ahora se hace manualmente cambiando `plan = 'pro'` en la DB
+- Stripe: columnas reservadas en DB pero integración pendiente
 
 ## Reglas de código
 - Comentarios en el código: siempre en inglés
