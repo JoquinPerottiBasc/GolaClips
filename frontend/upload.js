@@ -75,25 +75,29 @@ firebase.auth().onAuthStateChanged(async (user) => {
   }
   _currentUser = user;
 
-  // Show user info in header
+  // Show header
   const headerUser = document.getElementById('header-user');
-  const userAvatar = document.getElementById('user-avatar');
-  const userName = document.getElementById('user-name');
-  if (headerUser) {
-    headerUser.classList.remove('hidden');
-    if (user.photoURL) userAvatar.src = user.photoURL;
-    userName.textContent = user.displayName || user.email;
-  }
+  if (headerUser) headerUser.classList.remove('hidden');
 
-  // Load credits display
+  // Fill user info (header trigger + dropdown)
+  const firstName = (user.displayName || user.email || '').split(' ')[0];
+  const setEl = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+  const setSrc = (id, val) => { const el = document.getElementById(id); if (el && val) el.src = val; };
+
+  setEl('user-name', firstName);
+  setEl('dropdown-name', user.displayName || user.email);
+  setEl('dropdown-email', user.email || '');
+  setSrc('user-avatar', user.photoURL);
+  setSrc('dropdown-avatar', user.photoURL);
+
+  // Load credits
   try {
     const token = await user.getIdToken();
     const res = await fetch(`${API_BASE}/api/me/credits`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     if (res.ok) {
-      const data = await res.json();
-      updateCreditsDisplay(data);
+      updateCreditsDisplay(await res.json());
     } else {
       updateCreditsDisplay({ plan: 'free', credits_remaining: 0, credits_total: 30 });
     }
@@ -101,7 +105,6 @@ firebase.auth().onAuthStateChanged(async (user) => {
     updateCreditsDisplay({ plan: 'free', credits_remaining: 0, credits_total: 30 });
   }
 
-  // Load history
   loadHistory();
 });
 
@@ -209,25 +212,98 @@ btnAnalizar.addEventListener('click', submitAll);
 function updateCreditsDisplay(data) {
   if (!data || typeof data !== 'object') return;
 
-  const displayEl = document.getElementById('header-credits-display');
-  const badgeEl = document.getElementById('header-plan-badge');
-  const upgradeEl = document.getElementById('header-upgrade-link');
+  const remaining = data.credits_remaining ?? 0;
+  const total = data.credits_total ?? 30;
+  const plan = data.plan || 'free';
+  const isPro = plan === 'pro';
 
-  if (displayEl) {
-    displayEl.textContent = `${data.credits_remaining ?? 0}/${data.credits_total ?? 30} créditos`;
+  // Header pill
+  const displayEl = document.getElementById('header-credits-display');
+  if (displayEl) displayEl.textContent = `${remaining}/${total} créditos`;
+
+  // Header upgrade CTA
+  const upgradeBtn = document.getElementById('nav-upgrade-btn');
+  if (upgradeBtn) upgradeBtn.style.display = isPro ? 'none' : '';
+
+  // Dropdown credits count
+  const countEl = document.getElementById('dropdown-credits-count');
+  if (countEl) countEl.textContent = `${remaining}/${total}`;
+
+  // Credits bar
+  const barFill = document.getElementById('credits-bar-fill');
+  if (barFill) {
+    const pct = total > 0 ? Math.max(0, Math.round((remaining / total) * 100)) : 0;
+    barFill.style.width = `${pct}%`;
+    barFill.className = 'credits-bar-fill' + (pct <= 20 ? ' low' : '');
   }
 
-  if (badgeEl && upgradeEl) {
-    if (data.plan === 'pro') {
-      badgeEl.textContent = 'PRO';
-      badgeEl.className = 'header-plan-badge pro';
-      badgeEl.style.display = '';
-      upgradeEl.style.display = 'none';
+  // Reset date
+  const resetEl = document.getElementById('dropdown-reset-info');
+  if (resetEl && data.credits_reset_date) {
+    const d = new Date(data.credits_reset_date);
+    resetEl.textContent = `Se resetean el ${d.toLocaleDateString('es-AR', { day: '2-digit', month: 'long' })}`;
+  }
+
+  // Plan badge in dropdown
+  const planBadge = document.getElementById('dropdown-plan-badge');
+  if (planBadge) {
+    planBadge.textContent = isPro ? 'PRO' : 'FREE';
+    planBadge.className = `plan-badge-dropdown ${isPro ? 'pro' : 'free'}`;
+  }
+
+  // Plan description + button
+  const planDesc = document.getElementById('dropdown-plan-desc');
+  if (planDesc) {
+    planDesc.textContent = isPro
+      ? '200 créditos/mes · Sin marca de agua · Clips guardados 30 días'
+      : '30 créditos/mes · Con marca de agua · Clips guardados 3 días';
+  }
+  const planBtn = document.getElementById('btn-ver-planes');
+  if (planBtn) {
+    if (isPro) {
+      planBtn.textContent = 'Ver detalles del plan';
+      planBtn.className = 'btn-ver-planes';
     } else {
-      badgeEl.style.display = 'none';
-      upgradeEl.style.display = '';
+      planBtn.textContent = '✨ Mejorar a Pro — $12/mes';
+      planBtn.className = 'btn-ver-planes upgrade';
     }
   }
+}
+
+// --- User dropdown ---
+function toggleUserMenu() {
+  const menu = document.getElementById('user-menu');
+  const dropdown = document.getElementById('user-dropdown');
+  const trigger = document.getElementById('user-menu-trigger');
+  const isOpen = menu.classList.toggle('open');
+  dropdown.classList.toggle('hidden', !isOpen);
+  trigger.setAttribute('aria-expanded', isOpen);
+}
+
+function closeUserMenu() {
+  const menu = document.getElementById('user-menu');
+  const dropdown = document.getElementById('user-dropdown');
+  const trigger = document.getElementById('user-menu-trigger');
+  menu.classList.remove('open');
+  dropdown.classList.add('hidden');
+  if (trigger) trigger.setAttribute('aria-expanded', 'false');
+}
+
+// Close dropdown when clicking outside
+document.addEventListener('click', (e) => {
+  const menu = document.getElementById('user-menu');
+  if (menu && !menu.contains(e.target)) closeUserMenu();
+});
+
+// --- Plans modal ---
+function openPlansModal() {
+  document.getElementById('plans-modal').classList.remove('hidden');
+}
+function closePlansModal() {
+  document.getElementById('plans-modal').classList.add('hidden');
+}
+function closePlansModalOutside(e) {
+  if (e.target === document.getElementById('plans-modal')) closePlansModal();
 }
 
 function getFileDuration(file) {

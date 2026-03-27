@@ -8,42 +8,291 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <style>
-    .header-credits-wrap {
+
+    /* ── APP HEADER ─────────────────────────────────── */
+    .app-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 0 1.5rem 0;
+      margin-bottom: 2rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .app-header-logo .logo-img {
+      height: 220px;
+      width: auto;
+      display: block;
+      margin: -88px 0;
+    }
+
+    .app-header-nav {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    /* Credits pill */
+    .nav-credits {
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+      padding: 0.4rem 0.9rem;
+      background: rgba(124,58,237,0.12);
+      border: 1px solid rgba(124,58,237,0.28);
+      border-radius: 99px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: #a78bfa;
+      white-space: nowrap;
+      cursor: default;
+    }
+
+    .nav-credits-icon { font-size: 0.85rem; }
+
+    /* Upgrade CTA */
+    .nav-upgrade-btn {
+      padding: 0.42rem 1rem;
+      border-radius: 99px;
+      background: linear-gradient(135deg, #f59e0b, #f97316);
+      color: #1a0a00;
+      font-size: 0.78rem;
+      font-weight: 700;
+      border: none;
+      cursor: pointer;
+      font-family: inherit;
+      transition: opacity 0.2s, transform 0.15s;
+      white-space: nowrap;
+      letter-spacing: 0.01em;
+    }
+    .nav-upgrade-btn:hover { opacity: 0.88; transform: translateY(-1px); }
+
+    /* User menu trigger */
+    .user-menu { position: relative; }
+
+    .user-menu-trigger {
       display: flex;
       align-items: center;
       gap: 0.5rem;
+      padding: 0.35rem 0.75rem 0.35rem 0.4rem;
+      background: var(--surface);
+      border: 1px solid var(--border-hover);
+      border-radius: 99px;
+      cursor: pointer;
+      font-family: inherit;
+      transition: border-color 0.2s, background 0.2s;
     }
-    .header-credits {
-      padding: 0.4rem 0.875rem;
-      background: rgba(124,58,237,0.15);
-      border: 1px solid rgba(124,58,237,0.3);
-      border-radius: 8px;
-      color: #a78bfa;
+    .user-menu-trigger:hover {
+      border-color: rgba(124,58,237,0.5);
+      background: var(--surface-2);
+    }
+    .user-menu-trigger .user-avatar {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      object-fit: cover;
+      flex-shrink: 0;
+    }
+    .user-menu-trigger .user-name-short {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text);
+      max-width: 110px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .user-menu-trigger .chevron {
+      width: 14px;
+      height: 14px;
+      stroke: var(--text-muted);
+      flex-shrink: 0;
+      transition: transform 0.2s;
+    }
+    .user-menu.open .chevron { transform: rotate(180deg); }
+
+    /* Dropdown panel */
+    .user-dropdown {
+      position: absolute;
+      top: calc(100% + 10px);
+      right: 0;
+      width: 280px;
+      background: #13131f;
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 18px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.55), 0 0 0 1px rgba(124,58,237,0.08);
+      z-index: 500;
+      overflow: hidden;
+      animation: dropdown-in 0.18s ease;
+    }
+    @keyframes dropdown-in {
+      from { opacity: 0; transform: translateY(-6px) scale(0.97); }
+      to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    .user-dropdown.hidden { display: none; }
+
+    /* Profile section */
+    .dropdown-profile {
+      display: flex;
+      align-items: center;
+      gap: 0.85rem;
+      padding: 1.1rem 1.1rem 1rem;
+    }
+    .dropdown-profile img {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid rgba(124,58,237,0.35);
+      flex-shrink: 0;
+    }
+    .dropdown-display-name {
+      font-size: 0.875rem;
+      font-weight: 700;
+      color: var(--text);
+      line-height: 1.3;
+    }
+    .dropdown-display-email {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      margin-top: 0.1rem;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .dropdown-divider {
+      height: 1px;
+      background: rgba(255,255,255,0.07);
+      margin: 0;
+    }
+
+    /* Credits section */
+    .dropdown-credits-section { padding: 0.9rem 1.1rem; }
+
+    .dropdown-credits-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 0.55rem;
+    }
+    .dropdown-section-label {
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .dropdown-credits-count {
       font-size: 0.8rem;
       font-weight: 700;
-      white-space: nowrap;
+      color: #a78bfa;
     }
-    .header-plan-badge {
-      padding: 0.25rem 0.6rem;
-      border-radius: 20px;
-      font-size: 0.7rem;
+    .credits-bar-track {
+      height: 5px;
+      background: rgba(255,255,255,0.07);
+      border-radius: 99px;
+      overflow: hidden;
+      margin-bottom: 0.45rem;
+    }
+    .credits-bar-fill {
+      height: 100%;
+      border-radius: 99px;
+      background: linear-gradient(90deg, #7c3aed, #22d3ee);
+      transition: width 0.4s ease;
+    }
+    .credits-bar-fill.low { background: linear-gradient(90deg, #f43f5e, #f97316); }
+    .dropdown-reset-info {
+      font-size: 0.68rem;
+      color: var(--text-dim);
+    }
+
+    /* Plan section */
+    .dropdown-plan-section { padding: 0.9rem 1.1rem; }
+
+    .dropdown-plan-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 0.6rem;
+    }
+    .plan-badge-dropdown {
+      font-size: 0.68rem;
       font-weight: 800;
-      letter-spacing: 0.5px;
+      padding: 0.2rem 0.6rem;
+      border-radius: 99px;
+      letter-spacing: 0.05em;
       text-transform: uppercase;
     }
-    .header-plan-badge.pro {
+    .plan-badge-dropdown.free {
+      background: rgba(255,255,255,0.08);
+      color: var(--text-muted);
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+    .plan-badge-dropdown.pro {
       background: #f59e0b;
-      color: #1a1000;
+      color: #1a0800;
     }
-    .header-upgrade-link {
-      font-size: 0.75rem;
-      color: #a78bfa;
-      text-decoration: none;
-      border-bottom: 1px dashed rgba(167,139,250,0.4);
-      white-space: nowrap;
-    }
-    .header-upgrade-link:hover { color: #c4b5fd; border-bottom-color: #c4b5fd; }
 
+    .dropdown-plan-desc {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      line-height: 1.4;
+      margin-bottom: 0.75rem;
+    }
+
+    .btn-ver-planes {
+      display: block;
+      width: 100%;
+      padding: 0.55rem 1rem;
+      background: linear-gradient(135deg, rgba(124,58,237,0.2), rgba(34,211,238,0.12));
+      border: 1px solid rgba(124,58,237,0.35);
+      border-radius: 10px;
+      color: #a78bfa;
+      font-size: 0.8rem;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      text-align: center;
+      transition: background 0.2s, border-color 0.2s;
+      text-decoration: none;
+    }
+    .btn-ver-planes:hover {
+      background: linear-gradient(135deg, rgba(124,58,237,0.32), rgba(34,211,238,0.2));
+      border-color: rgba(124,58,237,0.6);
+      color: #c4b5fd;
+    }
+    .btn-ver-planes.upgrade {
+      background: linear-gradient(135deg, #f59e0b, #f97316);
+      border-color: transparent;
+      color: #1a0800;
+      font-weight: 700;
+    }
+    .btn-ver-planes.upgrade:hover { opacity: 0.88; }
+
+    /* Sign out */
+    .dropdown-signout {
+      display: flex;
+      align-items: center;
+      gap: 0.55rem;
+      width: 100%;
+      padding: 0.85rem 1.1rem;
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 0.8rem;
+      font-weight: 500;
+      font-family: inherit;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+      text-align: left;
+    }
+    .dropdown-signout:hover {
+      background: var(--error-glow);
+      color: var(--error);
+    }
+
+    /* ── MODAL ──────────────────────────────────────── */
     .modal-overlay {
       position: fixed;
       inset: 0;
@@ -55,15 +304,16 @@
     }
     .modal-overlay.hidden { display: none; }
     .modal-card {
-      background: #18181f;
+      background: #13131f;
       border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 16px;
-      padding: 2rem;
+      border-radius: 18px;
+      padding: 1.75rem 2rem;
       max-width: 380px;
       width: 90%;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.6);
     }
     .modal-title {
-      font-size: 1.15rem;
+      font-size: 1.1rem;
       font-weight: 800;
       letter-spacing: -0.3px;
       margin-bottom: 1.25rem;
@@ -72,24 +322,24 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 0.7rem 0;
-      border-bottom: 1px solid rgba(255,255,255,0.07);
+      padding: 0.65rem 0;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
       font-size: 0.875rem;
     }
     .quote-row:last-of-type { border-bottom: none; }
-    .quote-lbl { color: rgba(238,238,245,0.55); }
+    .quote-lbl { color: rgba(238,238,245,0.5); }
     .quote-val { font-weight: 700; }
     .quote-val.insufficient { color: #f43f5e; }
     .quote-alert {
-      margin-top: 1rem;
-      padding: 0.75rem 1rem;
+      margin-top: 0.875rem;
+      padding: 0.7rem 0.9rem;
       background: rgba(244,63,94,0.1);
-      border: 1px solid rgba(244,63,94,0.3);
+      border: 1px solid rgba(244,63,94,0.25);
       border-radius: 8px;
-      font-size: 0.8rem;
+      font-size: 0.78rem;
       color: #f87171;
+      line-height: 1.5;
     }
-    .quote-alert a { color: #f87171; font-weight: 600; }
     .modal-actions {
       display: flex;
       gap: 0.75rem;
@@ -97,20 +347,20 @@
       justify-content: flex-end;
     }
     .btn-modal-cancel {
-      padding: 0.65rem 1.25rem;
+      padding: 0.6rem 1.2rem;
       border-radius: 9px;
-      border: 1px solid rgba(255,255,255,0.12);
+      border: 1px solid rgba(255,255,255,0.1);
       background: transparent;
-      color: rgba(238,238,245,0.6);
+      color: rgba(238,238,245,0.55);
       font-size: 0.875rem;
       font-weight: 600;
       cursor: pointer;
       font-family: inherit;
       transition: background 0.15s;
     }
-    .btn-modal-cancel:hover { background: rgba(255,255,255,0.06); }
+    .btn-modal-cancel:hover { background: rgba(255,255,255,0.05); }
     .btn-modal-confirm {
-      padding: 0.65rem 1.5rem;
+      padding: 0.6rem 1.4rem;
       border-radius: 9px;
       background: linear-gradient(135deg, #7c3aed, #22d3ee);
       color: #fff;
@@ -122,28 +372,192 @@
       transition: opacity 0.2s;
     }
     .btn-modal-confirm:hover { opacity: 0.85; }
-    .btn-modal-confirm:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-modal-confirm:disabled { opacity: 0.35; cursor: not-allowed; }
+
+    /* ── PLANES MODAL ───────────────────────────────── */
+    .plans-modal-card {
+      background: #13131f;
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 20px;
+      padding: 2rem;
+      max-width: 520px;
+      width: 94%;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+    }
+    .plans-modal-title {
+      font-size: 1.25rem;
+      font-weight: 800;
+      letter-spacing: -0.4px;
+      margin-bottom: 0.35rem;
+    }
+    .plans-modal-sub {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      margin-bottom: 1.5rem;
+    }
+    .plans-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.9rem;
+      margin-bottom: 1.5rem;
+    }
+    .plan-card {
+      background: rgba(255,255,255,0.03);
+      border: 1.5px solid rgba(255,255,255,0.08);
+      border-radius: 14px;
+      padding: 1.25rem 1.1rem;
+    }
+    .plan-card.highlighted {
+      border-color: #f59e0b;
+      background: rgba(245,158,11,0.06);
+    }
+    .plan-card-name {
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--text-muted);
+      margin-bottom: 0.35rem;
+    }
+    .plan-card.highlighted .plan-card-name { color: #f59e0b; }
+    .plan-card-price {
+      font-size: 1.6rem;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      margin-bottom: 0.75rem;
+    }
+    .plan-card-price span { font-size: 0.8rem; font-weight: 500; color: var(--text-muted); }
+    .plan-feature {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      display: flex;
+      align-items: flex-start;
+      gap: 0.45rem;
+      margin-bottom: 0.45rem;
+      line-height: 1.4;
+    }
+    .plan-feature .check { color: var(--success); flex-shrink: 0; }
+    .plan-feature .check-pro { color: #f59e0b; flex-shrink: 0; }
+    .plans-note {
+      font-size: 0.75rem;
+      color: var(--text-dim);
+      text-align: center;
+      line-height: 1.5;
+    }
+    .btn-close-plans {
+      display: block;
+      width: 100%;
+      margin-top: 1.25rem;
+      padding: 0.65rem;
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.1);
+      background: transparent;
+      color: var(--text-muted);
+      font-size: 0.875rem;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn-close-plans:hover { background: rgba(255,255,255,0.05); }
   </style>
 </head>
 <body>
   <div class="container">
-    <header>
-      <div class="header-brand">
-        <a href="index.html"><img src="assets/logo.png" alt="GolaClips" class="logo-img"></a>
-        <p class="tagline">Subí tus videos de deportes. La IA encuentra los mejores momentos.</p>
-      </div>
-      <div class="header-user hidden" id="header-user">
-        <div class="header-credits-wrap">
-          <span class="header-plan-badge" id="header-plan-badge" style="display:none"></span>
-          <span class="header-credits" id="header-credits-display">...</span>
-          <a href="#" class="header-upgrade-link" id="header-upgrade-link" style="display:none">Mejorar a Pro</a>
+
+    <!-- ── HEADER ───────────────────────────────────── -->
+    <header class="app-header">
+      <a href="index.html" class="app-header-logo">
+        <img src="assets/logo.png" alt="GolaClips" class="logo-img">
+      </a>
+
+      <nav class="app-header-nav hidden" id="header-user">
+
+        <!-- Credits pill -->
+        <div class="nav-credits" title="Créditos disponibles este mes">
+          <span class="nav-credits-icon">⚡</span>
+          <span id="header-credits-display">...</span>
         </div>
-        <img id="user-avatar" class="user-avatar" src="" alt="" onerror="this.style.display='none'">
-        <span id="user-name" class="user-name"></span>
-        <button class="btn-logout" onclick="signOut()">Salir</button>
-      </div>
+
+        <!-- Upgrade CTA (solo free) -->
+        <button class="nav-upgrade-btn" id="nav-upgrade-btn" style="display:none"
+                onclick="openPlansModal()">
+          Mejorar a Pro ✨
+        </button>
+
+        <!-- User dropdown trigger -->
+        <div class="user-menu" id="user-menu">
+          <button class="user-menu-trigger" onclick="toggleUserMenu()" id="user-menu-trigger"
+                  aria-haspopup="true" aria-expanded="false">
+            <img id="user-avatar" class="user-avatar" src="" alt=""
+                 onerror="this.style.display='none'">
+            <span id="user-name" class="user-name-short"></span>
+            <svg class="chevron" viewBox="0 0 24 24" fill="none"
+                 stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </button>
+
+          <!-- Dropdown panel -->
+          <div class="user-dropdown hidden" id="user-dropdown">
+
+            <!-- Profile info -->
+            <div class="dropdown-profile">
+              <img id="dropdown-avatar" src="" alt="" onerror="this.style.display='none'">
+              <div style="min-width:0">
+                <div class="dropdown-display-name" id="dropdown-name"></div>
+                <div class="dropdown-display-email" id="dropdown-email"></div>
+              </div>
+            </div>
+
+            <div class="dropdown-divider"></div>
+
+            <!-- Credits -->
+            <div class="dropdown-credits-section">
+              <div class="dropdown-credits-header">
+                <span class="dropdown-section-label">Créditos este mes</span>
+                <span class="dropdown-credits-count" id="dropdown-credits-count">...</span>
+              </div>
+              <div class="credits-bar-track">
+                <div class="credits-bar-fill" id="credits-bar-fill" style="width:100%"></div>
+              </div>
+              <div class="dropdown-reset-info" id="dropdown-reset-info"></div>
+            </div>
+
+            <div class="dropdown-divider"></div>
+
+            <!-- Plan -->
+            <div class="dropdown-plan-section">
+              <div class="dropdown-plan-row">
+                <span class="dropdown-section-label">Tu plan</span>
+                <span class="plan-badge-dropdown free" id="dropdown-plan-badge">FREE</span>
+              </div>
+              <div class="dropdown-plan-desc" id="dropdown-plan-desc"></div>
+              <button class="btn-ver-planes" id="btn-ver-planes" onclick="openPlansModal(); closeUserMenu()">
+                Ver planes
+              </button>
+            </div>
+
+            <div class="dropdown-divider"></div>
+
+            <!-- Sign out -->
+            <button class="dropdown-signout" onclick="signOut()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                   stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                <polyline points="16 17 21 12 16 7"/>
+                <line x1="21" y1="12" x2="9" y2="12"/>
+              </svg>
+              Cerrar sesión
+            </button>
+
+          </div><!-- /user-dropdown -->
+        </div><!-- /user-menu -->
+
+      </nav>
     </header>
 
+    <!-- ── MAIN ─────────────────────────────────────── -->
     <main>
       <div id="upload-area" class="upload-area">
         <div class="upload-icon">🎬</div>
@@ -216,10 +630,9 @@
       </div>
 
       <div id="error-msg" class="error-msg hidden"></div>
-
       <div id="jobs-section" class="jobs-section hidden"></div>
 
-      <!-- History section -->
+      <!-- History -->
       <div id="history-section" class="history-section hidden">
         <div class="history-header">
           <h2 class="history-title">Tus clips anteriores</h2>
@@ -229,7 +642,7 @@
     </main>
   </div>
 
-  <!-- Quote confirmation modal -->
+  <!-- ── QUOTE MODAL ───────────────────────────────── -->
   <div id="quote-modal" class="modal-overlay hidden">
     <div class="modal-card">
       <div class="modal-title">Confirmar análisis</div>
@@ -238,6 +651,43 @@
         <button class="btn-modal-cancel" onclick="dismissQuoteModal()">Cancelar</button>
         <button class="btn-modal-confirm" id="btn-confirm-quote" onclick="confirmQuote()">Analizar ⚡</button>
       </div>
+    </div>
+  </div>
+
+  <!-- ── PLANES MODAL ──────────────────────────────── -->
+  <div id="plans-modal" class="modal-overlay hidden" onclick="closePlansModalOutside(event)">
+    <div class="plans-modal-card">
+      <div class="plans-modal-title">Planes de GolaClips</div>
+      <div class="plans-modal-sub">Elegí el plan que mejor se adapta a vos</div>
+
+      <div class="plans-grid">
+        <!-- Free -->
+        <div class="plan-card">
+          <div class="plan-card-name">Free</div>
+          <div class="plan-card-price">$0 <span>/ mes</span></div>
+          <div class="plan-feature"><span class="check">✓</span> 30 créditos / mes</div>
+          <div class="plan-feature"><span class="check">✓</span> 1 crédito = 1 minuto de video</div>
+          <div class="plan-feature"><span class="check">✓</span> Clips se guardan 3 días</div>
+          <div class="plan-feature" style="color:var(--text-dim)"><span style="color:var(--text-dim)">✗</span> Marca de agua en clips</div>
+        </div>
+
+        <!-- Pro -->
+        <div class="plan-card highlighted">
+          <div class="plan-card-name">Pro</div>
+          <div class="plan-card-price">$12 <span>/ mes</span></div>
+          <div class="plan-feature"><span class="check-pro">✓</span> 200 créditos / mes</div>
+          <div class="plan-feature"><span class="check-pro">✓</span> 1 crédito = 1 minuto de video</div>
+          <div class="plan-feature"><span class="check-pro">✓</span> Clips se guardan 30 días</div>
+          <div class="plan-feature"><span class="check-pro">✓</span> Sin marca de agua</div>
+        </div>
+      </div>
+
+      <div class="plans-note">
+        Los créditos se resetean el 1° de cada mes y no se acumulan.<br>
+        Para activar Pro, contactanos por email.
+      </div>
+
+      <button class="btn-close-plans" onclick="closePlansModal()">Cerrar</button>
     </div>
   </div>
 
