@@ -11,6 +11,7 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Depends, Request
 from fastapi.concurrency import run_in_threadpool
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
@@ -574,6 +575,40 @@ async def health():
     }
 
 
-# Serve frontend last so API routes take priority
+# HTML files served with no-cache headers so browser always gets the latest version.
+# Must be declared before the StaticFiles mount which would otherwise handle them silently.
 FRONTEND_DIR = Path(__file__).parent.parent / "frontend"
+_NO_CACHE = {"Cache-Control": "no-cache, no-store, must-revalidate", "Pragma": "no-cache", "Expires": "0"}
+
+
+@app.get("/")
+async def serve_index():
+    return FileResponse(str(FRONTEND_DIR / "index.html"), headers=_NO_CACHE)
+
+
+@app.get("/app.html")
+async def serve_app():
+    return FileResponse(str(FRONTEND_DIR / "app.html"), headers=_NO_CACHE)
+
+
+@app.get("/login.html")
+async def serve_login():
+    return FileResponse(str(FRONTEND_DIR / "login.html"), headers=_NO_CACHE)
+
+
+@app.get("/clips.html")
+async def serve_clips():
+    return FileResponse(str(FRONTEND_DIR / "clips.html"), headers=_NO_CACHE)
+
+
+@app.get("/dashboard.html")
+async def serve_dashboard():
+    return FileResponse(str(FRONTEND_DIR / "dashboard.html"), headers=_NO_CACHE)
+
+
+@app.get("/index.html")
+async def serve_index_html():
+    return FileResponse(str(FRONTEND_DIR / "index.html"), headers=_NO_CACHE)
+
+
 app.mount("/", StaticFiles(directory=str(FRONTEND_DIR), html=True), name="frontend")

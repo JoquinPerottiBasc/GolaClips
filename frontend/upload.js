@@ -566,6 +566,16 @@ async function subscribeToPro() {
   }
 }
 
+function showToast(type, message) {
+  const toast = document.getElementById('upgrade-toast');
+  if (!toast) return;
+  toast.className = `upgrade-toast ${type}`;
+  toast.innerHTML = message;
+  toast.style.display = 'flex';
+  clearTimeout(toast._hideTimer);
+  toast._hideTimer = setTimeout(() => { toast.style.display = 'none'; }, 7000);
+}
+
 async function openBillingPortal() {
   const btn = document.getElementById('btn-billing-portal');
   if (btn) { btn.disabled = true; btn.textContent = 'Procesando...'; }
@@ -578,25 +588,19 @@ async function openBillingPortal() {
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(parseApiErrorDetail(data));
-    // No stripe_customer_id — was a dev/manual upgrade, already downgraded server-side
+    // No stripe_customer_id — dev/manual upgrade, already downgraded server-side
     if (data.downgraded_directly) {
       const credRes = await fetch(`${API_BASE}/api/me/credits`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (credRes.ok) updateCreditsDisplay(await credRes.json());
-      const toast = document.getElementById('upgrade-toast');
-      if (toast) {
-        toast.className = 'upgrade-toast cancelled';
-        toast.innerHTML = '<span>ℹ</span><span>Plan cancelado. Volviste al plan Free.</span>';
-        toast.style.display = '';
-        setTimeout(() => { toast.style.display = 'none'; }, 6000);
-      }
+      showToast('cancelled', '<span>ℹ</span><span>Plan cancelado. Volviste al plan Free.</span>');
       return;
     }
     if (!data.portal_url) throw new Error('Stripe no devolvió URL del portal.');
     window.location.href = data.portal_url;
   } catch (err) {
-    showError(err.message || 'No se pudo abrir el portal de facturación.');
+    showToast('cancelled', `<span>✕</span><span>${err.message || 'No se pudo procesar la cancelación.'}</span>`);
     if (btn) { btn.disabled = false; btn.textContent = '⚙ Gestionar facturación'; }
   }
 }
