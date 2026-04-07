@@ -8,7 +8,6 @@ const fileListEl = document.getElementById('file-list');
 const jobsSection = document.getElementById('jobs-section');
 const errorMsg = document.getElementById('error-msg');
 const btnAnalizar = document.getElementById('btn-analizar');
-const historySection = document.getElementById('history-section');
 const historyList = document.getElementById('history-list');
 
 const DURATION_MAP = {
@@ -43,6 +42,14 @@ const VIDEO_EXTENSIONS = ['mp4', 'mov', 'avi', 'mkv', 'webm', 'wmv', 'flv', 'ts'
 let selectedFiles = [];
 let _currentUser = null;
 let _resolveQuote = null;
+/** Last known plan from /api/me/credits ('free' | 'pro') */
+let _lastPlan = 'free';
+/** Billing: Stripe checkout + optional dev upgrade (see GOLACLIPS_DEV_PRO_UPGRADE) */
+let _billingStatus = {
+  checkout_available: false,
+  missing_env: [],
+  dev_upgrade_available: false,
+};
 
 // Version counter per clip for cache-busting after extend
 const _clipVersions = {};
@@ -75,20 +82,21 @@ firebase.auth().onAuthStateChanged(async (user) => {
   }
   _currentUser = user;
 
-  // Show header
-  const headerUser = document.getElementById('header-user');
-  if (headerUser) headerUser.classList.remove('hidden');
-
-  // Fill user info (header trigger + dropdown)
-  const firstName = (user.displayName || user.email || '').split(' ')[0];
+  // Fill sidebar/profile user info
+  const fullName = user.displayName || user.email || 'Usuario';
   const setEl = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
   const setSrc = (id, val) => { const el = document.getElementById(id); if (el && val) el.src = val; };
 
-  setEl('user-name', firstName);
-  setEl('dropdown-name', user.displayName || user.email);
-  setEl('dropdown-email', user.email || '');
-  setSrc('user-avatar', user.photoURL);
-  setSrc('dropdown-avatar', user.photoURL);
+  setEl('sidebar-user-name', fullName);
+  setEl('sidebar-user-email', user.email || '');
+  setEl('profile-name', fullName);
+  setEl('profile-email', user.email || '');
+  setSrc('sidebar-avatar', user.photoURL);
+  setSrc('profile-avatar', user.photoURL);
+  const sidebarUser = document.getElementById('sidebar-user');
+  if (sidebarUser) sidebarUser.style.display = '';
+
+  await fetchBillingStatus();
 
   // Load credits
   try {
@@ -117,11 +125,14 @@ async function loadHistory() {
     });
     if (!res.ok) return;
     const jobs = await res.json();
+    const emptyEl = document.getElementById('history-empty');
 
-    if (!jobs.length) return;
-
-    historySection.classList.remove('hidden');
     historyList.innerHTML = '';
+    if (!jobs.length) {
+      if (emptyEl) emptyEl.style.display = '';
+      return;
+    }
+    if (emptyEl) emptyEl.style.display = 'none';
 
     jobs.forEach(job => renderHistoryJob(job));
   } catch (e) {
@@ -216,88 +227,158 @@ function updateCreditsDisplay(data) {
   const total = data.credits_total ?? 30;
   const plan = data.plan || 'free';
   const isPro = plan === 'pro';
+  const pct = total > 0 ? Math.max(0, Math.round((remaining / total) * 100)) : 0;
+  const resetText = data.credits_reset_date
+    ? `Se resetean el ${new Date(data.credits_reset_date).toLocaleDateString('es-AR', { day: '2-digit', month: 'long' })}`
+    : 'Sin fecha de reseteo';
 
-  // Header pill
-  const displayEl = document.getElementById('header-credits-display');
-  if (displayEl) displayEl.textContent = `${remaining}/${total} créditos`;
+  // Sidebar credits
+  const badgeEl = document.getElementById('sidebar-plan-badge');
+  if (badgeEl) {
+    badgeEl.textContent = isPro ? 'PRO' : 'FREE';
+    badgeEl.className = `sidebar-plan-badge ${isPro ? 'pro' : 'free'}`;
+  }
+  const creditsCountEl = document.getElementById('sidebar-credits-count');
+  if (creditsCountEl) creditsCountEl.textContent = `${remaining}/${total}`;
+  const sidebarBar = document.getElementById('sidebar-bar-fill');
+  if (sidebarBar) {
+    sidebarBar.style.width = `${pct}%`;
+    sidebarBar.className = `sidebar-bar-fill${pct <= 20 ? ' low' : ''}`;
+  }
+  const sidebarReset = document.getElementById('sidebar-credits-reset');
+  if (sidebarReset) sidebarReset.textContent = resetText;
+  const sidebarUpgrade = document.getElementById('btn-sidebar-upgrade');
+  if (sidebarUpgrade) sidebarUpgrade.style.display = isPro ? 'none' : 'block';
 
-  // Header upgrade CTA
-  const upgradeBtn = document.getElementById('nav-upgrade-btn');
-  if (upgradeBtn) upgradeBtn.style.display = isPro ? 'none' : '';
-
-  // Dropdown credits count
-  const countEl = document.getElementById('dropdown-credits-count');
-  if (countEl) countEl.textContent = `${remaining}/${total}`;
-
-  // Credits bar
-  const barFill = document.getElementById('credits-bar-fill');
-  if (barFill) {
-    const pct = total > 0 ? Math.max(0, Math.round((remaining / total) * 100)) : 0;
-    barFill.style.width = `${pct}%`;
-    barFill.className = 'credits-bar-fill' + (pct <= 20 ? ' low' : '');
+  // Profile section
+  const profilePlan = document.getElementById('profile-plan');
+  if (profilePlan) profilePlan.textContent = isPro ? 'PRO' : 'FREE';
+  const profileCredits = document.getElementById('profile-credits');
+  if (profileCredits) profileCredits.textContent = `${remaining}/${total} créditos`;
+  const profileReset = document.getElementById('profile-reset');
+  if (profileReset) profileReset.textContent = resetText;
+  const profileUpgradeBtn = document.getElementById('profile-upgrade-btn');
+  if (profileUpgradeBtn) {
+    profileUpgradeBtn.style.display = isPro ? 'none' : '';
+  }
+  const billingPortalBtn = document.getElementById('btn-billing-portal');
+  if (billingPortalBtn) {
+    billingPortalBtn.style.display = isPro ? '' : 'none';
   }
 
-  // Reset date
-  const resetEl = document.getElementById('dropdown-reset-info');
-  if (resetEl && data.credits_reset_date) {
-    const d = new Date(data.credits_reset_date);
-    resetEl.textContent = `Se resetean el ${d.toLocaleDateString('es-AR', { day: '2-digit', month: 'long' })}`;
+  const subscribeBtn = document.getElementById('btn-subscribe-modal');
+  if (subscribeBtn) {
+    subscribeBtn.disabled = isPro;
+    subscribeBtn.textContent = isPro
+      ? 'Ya tenés el plan Pro'
+      : 'Suscribirme a Pro — $12/mes';
   }
 
-  // Plan badge in dropdown
-  const planBadge = document.getElementById('dropdown-plan-badge');
-  if (planBadge) {
-    planBadge.textContent = isPro ? 'PRO' : 'FREE';
-    planBadge.className = `plan-badge-dropdown ${isPro ? 'pro' : 'free'}`;
-  }
+  _lastPlan = plan;
+  applyPlansModalBillingUi();
+}
 
-  // Plan description + button
-  const planDesc = document.getElementById('dropdown-plan-desc');
-  if (planDesc) {
-    planDesc.textContent = isPro
-      ? '200 créditos/mes · Sin marca de agua · Clips guardados 30 días'
-      : '30 créditos/mes · Con marca de agua · Clips guardados 3 días';
+async function fetchBillingStatus() {
+  try {
+    const res = await fetch(`${API_BASE}/health`);
+    if (!res.ok) return;
+    const h = await res.json();
+    if (typeof h.stripe_checkout_ready === 'boolean') {
+      _billingStatus = {
+        checkout_available: h.stripe_checkout_ready,
+        missing_env: h.stripe_missing_env || [],
+        dev_upgrade_available: Boolean(h.dev_pro_upgrade_enabled),
+      };
+      return;
+    }
+  } catch (_) {
+    /* ignore */
   }
-  const planBtn = document.getElementById('btn-ver-planes');
-  if (planBtn) {
-    if (isPro) {
-      planBtn.textContent = 'Ver detalles del plan';
-      planBtn.className = 'btn-ver-planes';
+  try {
+    const res = await fetch(`${API_BASE}/api/billing/status`);
+    if (res.ok) {
+      const b = await res.json();
+      _billingStatus = {
+        checkout_available: Boolean(b.checkout_available),
+        missing_env: b.missing_env || [],
+        dev_upgrade_available: Boolean(b.dev_pro_upgrade_enabled),
+      };
+    }
+  } catch (_) {
+    /* ignore */
+  }
+}
+
+/** Sync plan modal subscribe button + warning when Stripe is not configured */
+function applyPlansModalBillingUi() {
+  const warn = document.getElementById('plans-billing-warn');
+  const btn = document.getElementById('btn-subscribe-modal');
+  const isPro = _lastPlan === 'pro';
+  if (warn && !isPro) {
+    if (_billingStatus.checkout_available) {
+      warn.classList.remove('visible');
+      warn.textContent = '';
+    } else if (_billingStatus.dev_upgrade_available) {
+      warn.classList.add('visible');
+      warn.innerHTML =
+        '<strong>Modo prueba activo.</strong> Podés pasar a Pro sin tarjeta (solo en esta máquina). ' +
+        'En producción se usa Stripe con <code style="font-size:0.72em">STRIPE_SECRET_KEY</code> y ' +
+        '<code style="font-size:0.72em">STRIPE_PRO_PRICE_ID</code>.';
     } else {
-      planBtn.textContent = '✨ Mejorar a Pro — $12/mes';
-      planBtn.className = 'btn-ver-planes upgrade';
+      warn.classList.add('visible');
+      const miss = (_billingStatus.missing_env || []).join(', ');
+      warn.innerHTML =
+        '<strong>Los pagos no están activos en este servidor.</strong><br>' +
+        'Agregá en <code style="font-size:0.75em">backend/.env</code> las variables ' +
+        '<code style="font-size:0.72em">STRIPE_SECRET_KEY</code> y ' +
+        '<code style="font-size:0.72em">STRIPE_PRO_PRICE_ID</code> (precio mensual en Stripe). ' +
+        (miss ? `<br><span style="color:var(--text-muted)">Falta: ${miss}.</span> ` : '') +
+        '<br><span style="color:var(--text-muted)">Para probar sin Stripe, agregá ' +
+        '<code style="font-size:0.72em">GOLACLIPS_DEV_PRO_UPGRADE=1</code> y reiniciá el backend.</span>';
+    }
+  } else if (warn) {
+    warn.classList.remove('visible');
+    warn.textContent = '';
+  }
+
+  if (btn && !isPro) {
+    if (_billingStatus.checkout_available) {
+      btn.disabled = false;
+      btn.textContent = 'Suscribirme a Pro — $12/mes';
+    } else if (_billingStatus.dev_upgrade_available) {
+      btn.disabled = false;
+      btn.textContent = 'Activar Pro (prueba local, sin pago)';
+    } else {
+      btn.disabled = true;
+      btn.textContent = 'Pago no disponible (falta configurar Stripe)';
     }
   }
 }
 
-// --- User dropdown ---
-function toggleUserMenu() {
-  const menu = document.getElementById('user-menu');
-  const dropdown = document.getElementById('user-dropdown');
-  const trigger = document.getElementById('user-menu-trigger');
-  const isOpen = menu.classList.toggle('open');
-  dropdown.classList.toggle('hidden', !isOpen);
-  trigger.setAttribute('aria-expanded', isOpen);
+function parseApiErrorDetail(data) {
+  const d = data && data.detail;
+  if (typeof d === 'string') return d;
+  if (Array.isArray(d)) {
+    return d.map((e) => (e.msg != null ? e.msg : JSON.stringify(e))).join(' ');
+  }
+  return 'No se pudo iniciar el checkout.';
 }
 
-function closeUserMenu() {
-  const menu = document.getElementById('user-menu');
-  const dropdown = document.getElementById('user-dropdown');
-  const trigger = document.getElementById('user-menu-trigger');
-  menu.classList.remove('open');
-  dropdown.classList.add('hidden');
-  if (trigger) trigger.setAttribute('aria-expanded', 'false');
+// --- Sidebar navigation ---
+function showSection(section) {
+  const sections = ['upload', 'history', 'profile'];
+  sections.forEach((name) => {
+    const sectionEl = document.getElementById(`section-${name}`);
+    const navEl = document.getElementById(`nav-${name}`);
+    if (sectionEl) sectionEl.style.display = name === section ? '' : 'none';
+    if (navEl) navEl.classList.toggle('active', name === section);
+  });
 }
-
-// Close dropdown when clicking outside
-document.addEventListener('click', (e) => {
-  const menu = document.getElementById('user-menu');
-  if (menu && !menu.contains(e.target)) closeUserMenu();
-});
 
 // --- Plans modal ---
 function openPlansModal() {
   document.getElementById('plans-modal').classList.remove('hidden');
+  applyPlansModalBillingUi();
 }
 function closePlansModal() {
   document.getElementById('plans-modal').classList.add('hidden');
@@ -305,6 +386,137 @@ function closePlansModal() {
 function closePlansModalOutside(e) {
   if (e.target === document.getElementById('plans-modal')) closePlansModal();
 }
+
+async function subscribeToPro() {
+  const btn = document.getElementById('btn-subscribe-modal');
+
+  if (_billingStatus.dev_upgrade_available && !_billingStatus.checkout_available) {
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = 'Activando Pro...';
+    }
+    try {
+      const token = await getToken();
+      if (!token) {
+        window.location.href = 'login.html';
+        return;
+      }
+      const res = await fetch(`${API_BASE}/api/billing/dev-upgrade-pro`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(parseApiErrorDetail(data));
+      }
+      const credRes = await fetch(`${API_BASE}/api/me/credits`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (credRes.ok) {
+        updateCreditsDisplay(await credRes.json());
+      }
+      closePlansModal();
+      const toast = document.getElementById('upgrade-toast');
+      if (toast) {
+        toast.className = 'upgrade-toast success';
+        toast.innerHTML =
+          '<span>✓</span><span>Plan Pro activado en modo prueba (sin cobro real).</span>';
+        toast.style.display = '';
+        setTimeout(() => { toast.style.display = 'none'; }, 6000);
+      }
+    } catch (err) {
+      showError(err.message || 'No se pudo activar el plan.');
+      applyPlansModalBillingUi();
+    }
+    return;
+  }
+
+  if (!_billingStatus.checkout_available) {
+    showError(
+      'Pagos no configurados: agregá STRIPE_SECRET_KEY y STRIPE_PRO_PRICE_ID en backend/.env, ' +
+      'o GOLACLIPS_DEV_PRO_UPGRADE=1 para prueba local. Reiniciá el servidor.'
+    );
+    return;
+  }
+
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = 'Redirigiendo a Stripe...';
+  }
+
+  try {
+    const token = await getToken();
+    if (!token) {
+      window.location.href = 'login.html';
+      return;
+    }
+
+    const res = await fetch(`${API_BASE}/api/stripe/subscribe`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(parseApiErrorDetail(data));
+    }
+    if (!data.checkout_url) {
+      throw new Error('Stripe no devolvió URL de checkout.');
+    }
+    window.location.href = data.checkout_url;
+  } catch (err) {
+    showError(err.message || 'No se pudo iniciar el pago.');
+    applyPlansModalBillingUi();
+  }
+}
+
+async function openBillingPortal() {
+  const btn = document.getElementById('btn-billing-portal');
+  if (btn) { btn.disabled = true; btn.textContent = 'Abriendo portal...'; }
+  try {
+    const token = await getToken();
+    if (!token) { window.location.href = 'login.html'; return; }
+    const res = await fetch(`${API_BASE}/api/stripe/portal`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(parseApiErrorDetail(data));
+    if (!data.portal_url) throw new Error('Stripe no devolvió URL del portal.');
+    window.location.href = data.portal_url;
+  } catch (err) {
+    showError(err.message || 'No se pudo abrir el portal de facturación.');
+    if (btn) { btn.disabled = false; btn.textContent = '⚙ Gestionar facturación'; }
+  }
+}
+
+function showUpgradeToast(type) {
+  const toast = document.getElementById('upgrade-toast');
+  if (!toast) return;
+  if (type === 'success') {
+    toast.className = 'upgrade-toast success';
+    toast.innerHTML = '<span>✓</span><span>Pago confirmado. Tu plan Pro se va a actualizar en segundos.</span>';
+  } else if (type === 'cancelled') {
+    toast.className = 'upgrade-toast cancelled';
+    toast.innerHTML = '<span>ℹ</span><span>Checkout cancelado. Tu plan no cambió.</span>';
+  } else {
+    return;
+  }
+  toast.style.display = '';
+  setTimeout(() => { toast.style.display = 'none'; }, 6500);
+}
+
+function initAppShell() {
+  showSection('upload');
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('upgraded') === '1') {
+    showUpgradeToast('success');
+  } else if (params.get('upgraded') === '0') {
+    showUpgradeToast('cancelled');
+  }
+}
+
+initAppShell();
 
 function getFileDuration(file) {
   return new Promise((resolve) => {

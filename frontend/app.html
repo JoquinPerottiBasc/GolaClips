@@ -3,296 +3,286 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>GolaClips - Subí tu video</title>
+  <title>GolaClips</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <style>
 
-    /* ── APP HEADER ─────────────────────────────────── */
-    .app-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 0 1.5rem 0;
-      margin-bottom: 2rem;
-      border-bottom: 1px solid var(--border);
+    /* ── RESET GLOBAL BODY FOR SIDEBAR LAYOUT ───────── */
+    body {
+      padding: 0 !important;
+      display: flex !important;
+      flex-direction: row !important;
+      justify-content: flex-start !important;
+      align-items: stretch !important;
+      background-image: none !important;
+      min-height: 100vh;
     }
 
-    .app-header-logo .logo-img {
-      height: 220px;
+    /* ── SIDEBAR ─────────────────────────────────────── */
+    .sidebar {
+      width: 248px;
+      min-height: 100vh;
+      flex-shrink: 0;
+      background: #0a0a17;
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      position: fixed;
+      top: 0; left: 0;
+      bottom: 0;
+      z-index: 200;
+      overflow-y: auto;
+    }
+
+    /* Logo */
+    .sidebar-logo {
+      padding: 0.5rem 1.25rem 0;
+      flex-shrink: 0;
+    }
+    .sidebar-logo img {
+      height: 180px;
       width: auto;
       display: block;
-      margin: -88px 0;
+      margin: -70px 0 -60px;
     }
 
-    .app-header-nav {
+    /* Nav links */
+    .sidebar-nav {
+      padding: 0 0.75rem;
       display: flex;
-      align-items: center;
-      gap: 0.75rem;
-    }
-
-    /* Credits pill */
-    .nav-credits {
-      display: flex;
-      align-items: center;
-      gap: 0.45rem;
-      padding: 0.4rem 0.9rem;
-      background: rgba(124,58,237,0.12);
-      border: 1px solid rgba(124,58,237,0.28);
-      border-radius: 99px;
-      font-size: 0.8rem;
-      font-weight: 700;
-      color: #a78bfa;
-      white-space: nowrap;
-      cursor: default;
-    }
-
-    .nav-credits-icon { font-size: 0.85rem; }
-
-    /* Upgrade CTA */
-    .nav-upgrade-btn {
-      padding: 0.42rem 1rem;
-      border-radius: 99px;
-      background: linear-gradient(135deg, #f59e0b, #f97316);
-      color: #1a0a00;
-      font-size: 0.78rem;
-      font-weight: 700;
-      border: none;
-      cursor: pointer;
-      font-family: inherit;
-      transition: opacity 0.2s, transform 0.15s;
-      white-space: nowrap;
-      letter-spacing: 0.01em;
-    }
-    .nav-upgrade-btn:hover { opacity: 0.88; transform: translateY(-1px); }
-
-    /* User menu trigger */
-    .user-menu { position: relative; }
-
-    .user-menu-trigger {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      padding: 0.35rem 0.75rem 0.35rem 0.4rem;
-      background: var(--surface);
-      border: 1px solid var(--border-hover);
-      border-radius: 99px;
-      cursor: pointer;
-      font-family: inherit;
-      transition: border-color 0.2s, background 0.2s;
-    }
-    .user-menu-trigger:hover {
-      border-color: rgba(124,58,237,0.5);
-      background: var(--surface-2);
-    }
-    .user-menu-trigger .user-avatar {
-      width: 28px;
-      height: 28px;
-      border-radius: 50%;
-      object-fit: cover;
+      flex-direction: column;
+      gap: 2px;
       flex-shrink: 0;
     }
-    .user-menu-trigger .user-name-short {
-      font-size: 0.8rem;
-      font-weight: 600;
-      color: var(--text);
-      max-width: 110px;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-    .user-menu-trigger .chevron {
-      width: 14px;
-      height: 14px;
-      stroke: var(--text-muted);
-      flex-shrink: 0;
-      transition: transform 0.2s;
-    }
-    .user-menu.open .chevron { transform: rotate(180deg); }
-
-    /* Dropdown panel */
-    .user-dropdown {
-      position: absolute;
-      top: calc(100% + 10px);
-      right: 0;
-      width: 280px;
-      background: #13131f;
-      border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 18px;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.55), 0 0 0 1px rgba(124,58,237,0.08);
-      z-index: 500;
-      overflow: hidden;
-      animation: dropdown-in 0.18s ease;
-    }
-    @keyframes dropdown-in {
-      from { opacity: 0; transform: translateY(-6px) scale(0.97); }
-      to   { opacity: 1; transform: translateY(0) scale(1); }
-    }
-    .user-dropdown.hidden { display: none; }
-
-    /* Profile section */
-    .dropdown-profile {
+    .sidebar-nav-item {
       display: flex;
       align-items: center;
-      gap: 0.85rem;
-      padding: 1.1rem 1.1rem 1rem;
-    }
-    .dropdown-profile img {
-      width: 42px;
-      height: 42px;
-      border-radius: 50%;
-      object-fit: cover;
-      border: 2px solid rgba(124,58,237,0.35);
-      flex-shrink: 0;
-    }
-    .dropdown-display-name {
-      font-size: 0.875rem;
-      font-weight: 700;
-      color: var(--text);
-      line-height: 1.3;
-    }
-    .dropdown-display-email {
-      font-size: 0.72rem;
+      gap: 0.65rem;
+      padding: 0.6rem 0.85rem;
+      border-radius: 10px;
       color: var(--text-muted);
-      margin-top: 0.1rem;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
+      text-decoration: none;
+      font-size: 0.875rem;
+      font-weight: 500;
+      transition: background 0.15s, color 0.15s;
+      cursor: pointer;
+      border: none;
+      background: transparent;
+      font-family: inherit;
+      width: 100%;
+      text-align: left;
     }
+    .sidebar-nav-item svg { flex-shrink: 0; opacity: 0.65; transition: opacity 0.15s; }
+    .sidebar-nav-item:hover { background: rgba(255,255,255,0.06); color: var(--text); }
+    .sidebar-nav-item:hover svg { opacity: 1; }
+    .sidebar-nav-item.active {
+      background: rgba(124,58,237,0.15);
+      color: #a78bfa;
+      font-weight: 600;
+    }
+    .sidebar-nav-item.active svg { opacity: 1; }
 
-    .dropdown-divider {
+    /* Divider */
+    .sidebar-divider {
       height: 1px;
-      background: rgba(255,255,255,0.07);
-      margin: 0;
+      background: var(--border);
+      margin: 0.75rem 1.25rem;
+      flex-shrink: 0;
     }
 
-    /* Credits section */
-    .dropdown-credits-section { padding: 0.9rem 1.1rem; }
-
-    .dropdown-credits-header {
+    /* Credits widget */
+    .sidebar-credits {
+      padding: 0 0.75rem;
+      flex-shrink: 0;
+    }
+    .sidebar-credits-card {
+      background: rgba(124,58,237,0.07);
+      border: 1px solid rgba(124,58,237,0.2);
+      border-radius: 14px;
+      padding: 1rem 1.1rem;
+    }
+    .sidebar-credits-top {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-bottom: 0.55rem;
+      margin-bottom: 0.5rem;
     }
-    .dropdown-section-label {
-      font-size: 0.7rem;
-      font-weight: 600;
-      color: var(--text-muted);
-      text-transform: uppercase;
+    .sidebar-plan-badge {
+      font-size: 0.65rem;
+      font-weight: 800;
+      padding: 0.18rem 0.55rem;
+      border-radius: 99px;
       letter-spacing: 0.06em;
+      text-transform: uppercase;
     }
-    .dropdown-credits-count {
-      font-size: 0.8rem;
+    .sidebar-plan-badge.free {
+      background: rgba(255,255,255,0.1);
+      color: var(--text-muted);
+      border: 1px solid rgba(255,255,255,0.12);
+    }
+    .sidebar-plan-badge.pro {
+      background: #f59e0b;
+      color: #1a0800;
+    }
+    .sidebar-credits-count {
+      font-size: 0.82rem;
       font-weight: 700;
       color: #a78bfa;
     }
-    .credits-bar-track {
-      height: 5px;
-      background: rgba(255,255,255,0.07);
+    .sidebar-credits-label {
+      font-size: 0.68rem;
+      color: var(--text-muted);
+      margin-bottom: 0.5rem;
+    }
+    .sidebar-bar-track {
+      height: 4px;
+      background: rgba(255,255,255,0.08);
       border-radius: 99px;
       overflow: hidden;
       margin-bottom: 0.45rem;
     }
-    .credits-bar-fill {
+    .sidebar-bar-fill {
       height: 100%;
       border-radius: 99px;
       background: linear-gradient(90deg, #7c3aed, #22d3ee);
-      transition: width 0.4s ease;
+      transition: width 0.5s ease;
     }
-    .credits-bar-fill.low { background: linear-gradient(90deg, #f43f5e, #f97316); }
-    .dropdown-reset-info {
-      font-size: 0.68rem;
+    .sidebar-bar-fill.low { background: linear-gradient(90deg, #f43f5e, #f97316); }
+    .sidebar-credits-reset {
+      font-size: 0.66rem;
       color: var(--text-dim);
+      margin-bottom: 0.85rem;
     }
-
-    /* Plan section */
-    .dropdown-plan-section { padding: 0.9rem 1.1rem; }
-
-    .dropdown-plan-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 0.6rem;
-    }
-    .plan-badge-dropdown {
-      font-size: 0.68rem;
-      font-weight: 800;
-      padding: 0.2rem 0.6rem;
-      border-radius: 99px;
-      letter-spacing: 0.05em;
-      text-transform: uppercase;
-    }
-    .plan-badge-dropdown.free {
-      background: rgba(255,255,255,0.08);
-      color: var(--text-muted);
-      border: 1px solid rgba(255,255,255,0.1);
-    }
-    .plan-badge-dropdown.pro {
-      background: #f59e0b;
-      color: #1a0800;
-    }
-
-    .dropdown-plan-desc {
-      font-size: 0.72rem;
-      color: var(--text-muted);
-      line-height: 1.4;
-      margin-bottom: 0.75rem;
-    }
-
-    .btn-ver-planes {
+    .btn-sidebar-upgrade {
       display: block;
       width: 100%;
-      padding: 0.55rem 1rem;
-      background: linear-gradient(135deg, rgba(124,58,237,0.2), rgba(34,211,238,0.12));
-      border: 1px solid rgba(124,58,237,0.35);
-      border-radius: 10px;
-      color: #a78bfa;
+      padding: 0.6rem 0.75rem;
+      background: linear-gradient(135deg, #f59e0b, #f97316);
+      border: none;
+      border-radius: 9px;
+      color: #1a0800;
       font-size: 0.8rem;
-      font-weight: 600;
+      font-weight: 700;
       font-family: inherit;
       cursor: pointer;
+      transition: opacity 0.2s, transform 0.15s;
       text-align: center;
-      transition: background 0.2s, border-color 0.2s;
-      text-decoration: none;
     }
-    .btn-ver-planes:hover {
-      background: linear-gradient(135deg, rgba(124,58,237,0.32), rgba(34,211,238,0.2));
-      border-color: rgba(124,58,237,0.6);
-      color: #c4b5fd;
-    }
-    .btn-ver-planes.upgrade {
-      background: linear-gradient(135deg, #f59e0b, #f97316);
-      border-color: transparent;
-      color: #1a0800;
-      font-weight: 700;
-    }
-    .btn-ver-planes.upgrade:hover { opacity: 0.88; }
+    .btn-sidebar-upgrade:hover { opacity: 0.88; transform: translateY(-1px); }
 
-    /* Sign out */
-    .dropdown-signout {
+    /* Spacer pushes user to bottom */
+    .sidebar-spacer { flex: 1; }
+
+    /* User profile */
+    .sidebar-user {
+      padding: 0.75rem;
+      flex-shrink: 0;
+    }
+    .sidebar-user-card {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 0.85rem 0.9rem;
+    }
+    .sidebar-user-row {
       display: flex;
       align-items: center;
-      gap: 0.55rem;
+      gap: 0.6rem;
+      margin-bottom: 0.75rem;
+    }
+    .sidebar-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 1.5px solid rgba(124,58,237,0.4);
+      flex-shrink: 0;
+    }
+    .sidebar-user-text { min-width: 0; }
+    .sidebar-user-name {
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: var(--text);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .sidebar-user-email {
+      font-size: 0.67rem;
+      color: var(--text-dim);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .btn-sidebar-logout {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
       width: 100%;
-      padding: 0.85rem 1.1rem;
+      padding: 0.5rem 0.6rem;
       background: transparent;
-      border: none;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 8px;
       color: var(--text-muted);
-      font-size: 0.8rem;
+      font-size: 0.78rem;
       font-weight: 500;
       font-family: inherit;
       cursor: pointer;
-      transition: background 0.15s, color 0.15s;
-      text-align: left;
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
     }
-    .dropdown-signout:hover {
+    .btn-sidebar-logout:hover {
       background: var(--error-glow);
       color: var(--error);
+      border-color: rgba(244,63,94,0.3);
     }
 
-    /* ── MODAL ──────────────────────────────────────── */
+    /* ── MAIN CONTENT ────────────────────────────────── */
+    .app-content {
+      margin-left: 248px;
+      flex: 1;
+      min-height: 100vh;
+      background:
+        radial-gradient(ellipse 70% 40% at 50% -10%, rgba(124,58,237,0.1), transparent),
+        radial-gradient(ellipse 50% 30% at 90% 100%, rgba(34,211,238,0.04), transparent),
+        var(--bg);
+    }
+    .content-inner {
+      max-width: 820px;
+      padding: 2.75rem 3rem 5rem;
+    }
+    .content-title {
+      font-size: 1.3rem;
+      font-weight: 800;
+      letter-spacing: -0.4px;
+      margin-bottom: 1.75rem;
+    }
+
+    /* Success/cancel toast */
+    .upgrade-toast {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.9rem 1.1rem;
+      border-radius: 12px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      margin-bottom: 1.5rem;
+      animation: fade-in 0.35s ease;
+    }
+    .upgrade-toast.success {
+      background: rgba(16,185,129,0.12);
+      border: 1px solid rgba(16,185,129,0.3);
+      color: #34d399;
+    }
+    .upgrade-toast.cancelled {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+    }
+
+    /* ── MODALS ──────────────────────────────────────── */
     .modal-overlay {
       position: fixed;
       inset: 0;
@@ -374,13 +364,13 @@
     .btn-modal-confirm:hover { opacity: 0.85; }
     .btn-modal-confirm:disabled { opacity: 0.35; cursor: not-allowed; }
 
-    /* ── PLANES MODAL ───────────────────────────────── */
+    /* Plans modal */
     .plans-modal-card {
       background: #13131f;
       border: 1px solid rgba(255,255,255,0.1);
       border-radius: 20px;
       padding: 2rem;
-      max-width: 520px;
+      max-width: 500px;
       width: 94%;
       box-shadow: 0 20px 60px rgba(0,0,0,0.6);
     }
@@ -395,254 +385,373 @@
       color: var(--text-muted);
       margin-bottom: 1.5rem;
     }
-    .plans-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 0.9rem;
-      margin-bottom: 1.5rem;
-    }
+    .plans-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.9rem; margin-bottom: 1.25rem; }
     .plan-card {
       background: rgba(255,255,255,0.03);
       border: 1.5px solid rgba(255,255,255,0.08);
       border-radius: 14px;
       padding: 1.25rem 1.1rem;
     }
-    .plan-card.highlighted {
-      border-color: #f59e0b;
-      background: rgba(245,158,11,0.06);
-    }
+    .plan-card.highlighted { border-color: #f59e0b; background: rgba(245,158,11,0.06); }
     .plan-card-name {
-      font-size: 0.72rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.07em;
-      color: var(--text-muted);
-      margin-bottom: 0.35rem;
+      font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.07em; color: var(--text-muted); margin-bottom: 0.35rem;
     }
     .plan-card.highlighted .plan-card-name { color: #f59e0b; }
     .plan-card-price {
-      font-size: 1.6rem;
-      font-weight: 800;
-      letter-spacing: -0.5px;
-      margin-bottom: 0.75rem;
+      font-size: 1.55rem; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 0.85rem;
     }
-    .plan-card-price span { font-size: 0.8rem; font-weight: 500; color: var(--text-muted); }
+    .plan-card-price span { font-size: 0.78rem; font-weight: 500; color: var(--text-muted); }
     .plan-feature {
+      font-size: 0.78rem; color: var(--text-muted); display: flex;
+      align-items: flex-start; gap: 0.4rem; margin-bottom: 0.45rem; line-height: 1.4;
+    }
+    .ck { color: var(--success); flex-shrink: 0; }
+    .ck-pro { color: #f59e0b; flex-shrink: 0; }
+    .ck-no { color: var(--text-dim); flex-shrink: 0; }
+    .btn-subscribe-modal {
+      display: block; width: 100%; padding: 0.75rem;
+      background: linear-gradient(135deg, #f59e0b, #f97316);
+      border: none; border-radius: 11px; color: #1a0800;
+      font-size: 0.9rem; font-weight: 700; font-family: inherit;
+      cursor: pointer; margin-bottom: 0.75rem;
+      transition: opacity 0.2s, transform 0.15s;
+    }
+    .btn-subscribe-modal:hover { opacity: 0.88; transform: translateY(-1px); }
+    .btn-subscribe-modal:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+    .plans-billing-warn {
+      display: none;
       font-size: 0.78rem;
-      color: var(--text-muted);
-      display: flex;
-      align-items: flex-start;
-      gap: 0.45rem;
-      margin-bottom: 0.45rem;
-      line-height: 1.4;
-    }
-    .plan-feature .check { color: var(--success); flex-shrink: 0; }
-    .plan-feature .check-pro { color: #f59e0b; flex-shrink: 0; }
-    .plans-note {
-      font-size: 0.75rem;
-      color: var(--text-dim);
-      text-align: center;
-      line-height: 1.5;
-    }
-    .btn-close-plans {
-      display: block;
-      width: 100%;
-      margin-top: 1.25rem;
-      padding: 0.65rem;
+      color: #fbbf24;
+      background: rgba(245, 158, 11, 0.1);
+      border: 1px solid rgba(245, 158, 11, 0.35);
       border-radius: 10px;
-      border: 1px solid rgba(255,255,255,0.1);
-      background: transparent;
-      color: var(--text-muted);
-      font-size: 0.875rem;
-      font-weight: 600;
-      font-family: inherit;
-      cursor: pointer;
+      padding: 0.75rem 0.9rem;
+      line-height: 1.45;
+      margin-bottom: 1rem;
+    }
+    .plans-billing-warn.visible { display: block; }
+    .plans-note { font-size: 0.72rem; color: var(--text-dim); text-align: center; line-height: 1.5; margin-bottom: 1rem; }
+    .btn-close-plans {
+      display: block; width: 100%; padding: 0.6rem;
+      border-radius: 10px; border: 1px solid rgba(255,255,255,0.1);
+      background: transparent; color: var(--text-muted);
+      font-size: 0.85rem; font-weight: 600; font-family: inherit; cursor: pointer;
       transition: background 0.15s;
     }
     .btn-close-plans:hover { background: rgba(255,255,255,0.05); }
+
+    /* Profile section */
+    .profile-grid {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr;
+      gap: 1rem;
+    }
+    .profile-card {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 1.1rem 1.2rem;
+    }
+    .profile-title {
+      font-size: 0.78rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 0.85rem;
+      font-weight: 700;
+    }
+    .profile-user-row {
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+    }
+    .profile-avatar {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 1px solid rgba(124,58,237,0.45);
+      flex-shrink: 0;
+    }
+    .profile-name {
+      font-size: 0.95rem;
+      font-weight: 700;
+      margin-bottom: 0.15rem;
+    }
+    .profile-email {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+    .profile-plan-line {
+      font-size: 0.86rem;
+      margin-bottom: 0.45rem;
+      color: var(--text-muted);
+    }
+    .profile-plan-line strong {
+      color: var(--text);
+      font-weight: 700;
+    }
+    .profile-credits-strong {
+      font-size: 1.3rem;
+      font-weight: 800;
+      letter-spacing: -0.4px;
+      margin-bottom: 0.3rem;
+    }
+    .profile-reset {
+      font-size: 0.74rem;
+      color: var(--text-dim);
+      margin-bottom: 0.9rem;
+    }
+    .profile-upgrade {
+      width: 100%;
+      padding: 0.65rem 0.85rem;
+      border-radius: 9px;
+      border: none;
+      font-family: inherit;
+      font-weight: 700;
+      font-size: 0.82rem;
+      cursor: pointer;
+      background: linear-gradient(135deg, #f59e0b, #f97316);
+      color: #1a0800;
+    }
+    .profile-upgrade[disabled] {
+      cursor: default;
+      opacity: 0.6;
+    }
+    .btn-billing-portal {
+      width: 100%;
+      padding: 0.65rem 0.85rem;
+      border-radius: 9px;
+      border: 1px solid rgba(245,158,11,0.35);
+      background: rgba(245,158,11,0.08);
+      color: #f59e0b;
+      font-family: inherit;
+      font-weight: 700;
+      font-size: 0.82rem;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
+      display: none;
+    }
+    .btn-billing-portal:hover { background: rgba(245,158,11,0.15); border-color: rgba(245,158,11,0.55); }
+    .btn-billing-portal:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    @media (max-width: 980px) {
+      .profile-grid { grid-template-columns: 1fr; }
+    }
   </style>
 </head>
 <body>
-  <div class="container">
 
-    <!-- ── HEADER ───────────────────────────────────── -->
-    <header class="app-header">
-      <a href="index.html" class="app-header-logo">
-        <img src="assets/logo.png" alt="GolaClips" class="logo-img">
-      </a>
+  <!-- ── SIDEBAR ─────────────────────────────────────── -->
+  <aside class="sidebar" id="sidebar">
 
-      <nav class="app-header-nav hidden" id="header-user">
+    <!-- Logo -->
+    <div class="sidebar-logo">
+      <a href="index.html"><img src="assets/logo.png" alt="GolaClips"></a>
+    </div>
 
-        <!-- Credits pill -->
-        <div class="nav-credits" title="Créditos disponibles este mes">
-          <span class="nav-credits-icon">⚡</span>
-          <span id="header-credits-display">...</span>
+    <!-- Nav -->
+    <nav class="sidebar-nav">
+      <button class="sidebar-nav-item active" id="nav-upload" onclick="showSection('upload')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="16 16 12 12 8 16"/>
+          <line x1="12" y1="12" x2="12" y2="21"/>
+          <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/>
+        </svg>
+        Subir video
+      </button>
+      <button class="sidebar-nav-item" id="nav-history" onclick="showSection('history')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/>
+          <polyline points="12 6 12 12 16 14"/>
+        </svg>
+        Mi historial
+      </button>
+      <button class="sidebar-nav-item" id="nav-profile" onclick="showSection('profile')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 21a8 8 0 0 0-16 0"/>
+          <circle cx="12" cy="8" r="4"/>
+        </svg>
+        Mi perfil
+      </button>
+    </nav>
+
+    <div class="sidebar-divider"></div>
+
+    <!-- Credits widget -->
+    <div class="sidebar-credits">
+      <div class="sidebar-credits-card">
+        <div class="sidebar-credits-top">
+          <span class="sidebar-plan-badge free" id="sidebar-plan-badge">FREE</span>
+          <span class="sidebar-credits-count" id="sidebar-credits-count">...</span>
         </div>
-
-        <!-- Upgrade CTA (solo free) -->
-        <button class="nav-upgrade-btn" id="nav-upgrade-btn" style="display:none"
-                onclick="openPlansModal()">
-          Mejorar a Pro ✨
+        <div class="sidebar-credits-label">Créditos este mes</div>
+        <div class="sidebar-bar-track">
+          <div class="sidebar-bar-fill" id="sidebar-bar-fill" style="width:100%"></div>
+        </div>
+        <div class="sidebar-credits-reset" id="sidebar-credits-reset"></div>
+        <button class="btn-sidebar-upgrade" id="btn-sidebar-upgrade"
+                onclick="openPlansModal()" style="display:none">
+          ✨ Mejorar a Pro — $12/mes
         </button>
-
-        <!-- User dropdown trigger -->
-        <div class="user-menu" id="user-menu">
-          <button class="user-menu-trigger" onclick="toggleUserMenu()" id="user-menu-trigger"
-                  aria-haspopup="true" aria-expanded="false">
-            <img id="user-avatar" class="user-avatar" src="" alt=""
-                 onerror="this.style.display='none'">
-            <span id="user-name" class="user-name-short"></span>
-            <svg class="chevron" viewBox="0 0 24 24" fill="none"
-                 stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="6 9 12 15 18 9"></polyline>
-            </svg>
-          </button>
-
-          <!-- Dropdown panel -->
-          <div class="user-dropdown hidden" id="user-dropdown">
-
-            <!-- Profile info -->
-            <div class="dropdown-profile">
-              <img id="dropdown-avatar" src="" alt="" onerror="this.style.display='none'">
-              <div style="min-width:0">
-                <div class="dropdown-display-name" id="dropdown-name"></div>
-                <div class="dropdown-display-email" id="dropdown-email"></div>
-              </div>
-            </div>
-
-            <div class="dropdown-divider"></div>
-
-            <!-- Credits -->
-            <div class="dropdown-credits-section">
-              <div class="dropdown-credits-header">
-                <span class="dropdown-section-label">Créditos este mes</span>
-                <span class="dropdown-credits-count" id="dropdown-credits-count">...</span>
-              </div>
-              <div class="credits-bar-track">
-                <div class="credits-bar-fill" id="credits-bar-fill" style="width:100%"></div>
-              </div>
-              <div class="dropdown-reset-info" id="dropdown-reset-info"></div>
-            </div>
-
-            <div class="dropdown-divider"></div>
-
-            <!-- Plan -->
-            <div class="dropdown-plan-section">
-              <div class="dropdown-plan-row">
-                <span class="dropdown-section-label">Tu plan</span>
-                <span class="plan-badge-dropdown free" id="dropdown-plan-badge">FREE</span>
-              </div>
-              <div class="dropdown-plan-desc" id="dropdown-plan-desc"></div>
-              <button class="btn-ver-planes" id="btn-ver-planes" onclick="openPlansModal(); closeUserMenu()">
-                Ver planes
-              </button>
-            </div>
-
-            <div class="dropdown-divider"></div>
-
-            <!-- Sign out -->
-            <button class="dropdown-signout" onclick="signOut()">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                   stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-                <polyline points="16 17 21 12 16 7"/>
-                <line x1="21" y1="12" x2="9" y2="12"/>
-              </svg>
-              Cerrar sesión
-            </button>
-
-          </div><!-- /user-dropdown -->
-        </div><!-- /user-menu -->
-
-      </nav>
-    </header>
-
-    <!-- ── MAIN ─────────────────────────────────────── -->
-    <main>
-      <div id="upload-area" class="upload-area">
-        <div class="upload-icon">🎬</div>
-        <p class="upload-text">Arrastrá tus videos acá</p>
-        <p class="upload-sub">o</p>
-        <button class="btn-primary" id="btn-elegir">Elegir archivos</button>
-        <input type="file" id="file-input" accept="video/*" multiple hidden>
-        <p class="upload-hint">MP4, MOV, AVI, MKV · Podés seleccionar varios a la vez</p>
       </div>
+    </div>
 
-      <div id="file-list-section" class="hidden">
-        <div id="file-list"></div>
-      </div>
+    <div class="sidebar-spacer"></div>
 
-      <div id="options-area" class="options-area hidden">
-        <div class="option-group">
-          <label class="option-label">Duración de clips</label>
-          <div class="duration-options">
-            <label class="duration-opt">
-              <input type="radio" name="duration" value="short">
-              <div class="duration-opt-content">
-                <span class="duration-name">Cortos</span>
-                <span class="duration-range">hasta 30 seg</span>
-              </div>
-            </label>
-            <label class="duration-opt">
-              <input type="radio" name="duration" value="medium" checked>
-              <div class="duration-opt-content">
-                <span class="duration-name">Medios <span class="badge-rec">Recomendado</span></span>
-                <span class="duration-range">hasta 1 min</span>
-              </div>
-            </label>
-            <label class="duration-opt">
-              <input type="radio" name="duration" value="long">
-              <div class="duration-opt-content">
-                <span class="duration-name">Largos</span>
-                <span class="duration-range">hasta 2 min</span>
-              </div>
-            </label>
+    <div class="sidebar-divider"></div>
+
+    <!-- User profile -->
+    <div class="sidebar-user" id="sidebar-user" style="display:none">
+      <div class="sidebar-user-card">
+        <div class="sidebar-user-row">
+          <img class="sidebar-avatar" id="sidebar-avatar" src="" alt=""
+               onerror="this.style.display='none'">
+          <div class="sidebar-user-text">
+            <div class="sidebar-user-name" id="sidebar-user-name"></div>
+            <div class="sidebar-user-email" id="sidebar-user-email"></div>
           </div>
         </div>
+        <button class="btn-sidebar-logout" onclick="signOut()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+            <polyline points="16 17 21 12 16 7"/>
+            <line x1="21" y1="12" x2="9" y2="12"/>
+          </svg>
+          Cerrar sesión
+        </button>
+      </div>
+    </div>
 
-        <div class="option-group option-row">
-          <div class="option-half">
-            <label class="option-label" for="num-clips">Cantidad de clips</label>
-            <select id="num-clips" class="option-select">
-              <option value="auto">IA decide (Recomendado)</option>
-              <option value="3">3 clips</option>
-              <option value="5">5 clips</option>
-              <option value="8">8 clips</option>
-              <option value="10">10 clips</option>
-            </select>
+  </aside>
+
+  <!-- ── MAIN CONTENT ───────────────────────────────── -->
+  <div class="app-content">
+    <div class="content-inner">
+
+      <!-- Upgrade toast -->
+      <div id="upgrade-toast" style="display:none"></div>
+
+      <!-- Upload section -->
+      <div id="section-upload">
+        <div class="content-title">Subir video</div>
+
+        <div id="upload-area" class="upload-area">
+          <div class="upload-icon">🎬</div>
+          <p class="upload-text">Arrastrá tus videos acá</p>
+          <p class="upload-sub">o</p>
+          <button class="btn-primary" id="btn-elegir">Elegir archivos</button>
+          <input type="file" id="file-input" accept="video/*" multiple hidden>
+          <p class="upload-hint">MP4, MOV, AVI, MKV · Podés seleccionar varios a la vez</p>
+        </div>
+
+        <div id="file-list-section" class="hidden">
+          <div id="file-list"></div>
+        </div>
+
+        <div id="options-area" class="options-area hidden">
+          <div class="option-group">
+            <label class="option-label">Duración de clips</label>
+            <div class="duration-options">
+              <label class="duration-opt">
+                <input type="radio" name="duration" value="short">
+                <div class="duration-opt-content">
+                  <span class="duration-name">Cortos</span>
+                  <span class="duration-range">hasta 30 seg</span>
+                </div>
+              </label>
+              <label class="duration-opt">
+                <input type="radio" name="duration" value="medium" checked>
+                <div class="duration-opt-content">
+                  <span class="duration-name">Medios <span class="badge-rec">Recomendado</span></span>
+                  <span class="duration-range">hasta 1 min</span>
+                </div>
+              </label>
+              <label class="duration-opt">
+                <input type="radio" name="duration" value="long">
+                <div class="duration-opt-content">
+                  <span class="duration-name">Largos</span>
+                  <span class="duration-range">hasta 2 min</span>
+                </div>
+              </label>
+            </div>
           </div>
+
+          <div class="option-group option-row">
+            <div class="option-half">
+              <label class="option-label" for="num-clips">Cantidad de clips</label>
+              <select id="num-clips" class="option-select">
+                <option value="auto">IA decide (Recomendado)</option>
+                <option value="3">3 clips</option>
+                <option value="5">5 clips</option>
+                <option value="8">8 clips</option>
+                <option value="10">10 clips</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="option-group">
+            <label class="option-label" for="custom-prompt">
+              ¿Qué momentos querés extraer?
+              <span class="option-optional">(opcional)</span>
+            </label>
+            <textarea
+              id="custom-prompt" class="option-textarea"
+              placeholder="Ej: Solo caídas épicas y trucos imposibles..."
+              rows="2"
+            ></textarea>
+          </div>
+
+          <button class="btn-primary btn-analyze" id="btn-analizar">Analizar ⚡</button>
         </div>
 
-        <div class="option-group">
-          <label class="option-label" for="custom-prompt">
-            ¿Qué momentos querés extraer?
-            <span class="option-optional">(opcional)</span>
-          </label>
-          <textarea
-            id="custom-prompt"
-            class="option-textarea"
-            placeholder="Ej: Solo caídas épicas y trucos imposibles..."
-            rows="2"
-          ></textarea>
-        </div>
-
-        <button class="btn-primary btn-analyze" id="btn-analizar">Analizar ⚡</button>
+        <div id="error-msg" class="error-msg hidden"></div>
+        <div id="jobs-section" class="jobs-section hidden"></div>
       </div>
 
-      <div id="error-msg" class="error-msg hidden"></div>
-      <div id="jobs-section" class="jobs-section hidden"></div>
-
-      <!-- History -->
-      <div id="history-section" class="history-section hidden">
-        <div class="history-header">
-          <h2 class="history-title">Tus clips anteriores</h2>
-        </div>
+      <!-- History section -->
+      <div id="section-history" style="display:none">
+        <div class="content-title">Mi historial</div>
         <div id="history-list" class="history-list"></div>
+        <div id="history-empty" style="color:var(--text-muted);font-size:0.9rem;display:none">
+          Todavía no procesaste ningún video.
+        </div>
       </div>
-    </main>
+
+      <!-- Profile section -->
+      <div id="section-profile" style="display:none">
+        <div class="content-title">Mi perfil</div>
+        <div class="profile-grid">
+          <div class="profile-card">
+            <div class="profile-title">Cuenta</div>
+            <div class="profile-user-row">
+              <img class="profile-avatar" id="profile-avatar" src="" alt="" onerror="this.style.display='none'">
+              <div>
+                <div class="profile-name" id="profile-name">-</div>
+                <div class="profile-email" id="profile-email">-</div>
+              </div>
+            </div>
+          </div>
+          <div class="profile-card">
+            <div class="profile-title">Plan y créditos</div>
+            <div class="profile-plan-line">Plan actual: <strong id="profile-plan">FREE</strong></div>
+            <div class="profile-credits-strong" id="profile-credits">0/30 créditos</div>
+            <div class="profile-reset" id="profile-reset">-</div>
+            <button class="profile-upgrade" id="profile-upgrade-btn" onclick="openPlansModal()">✨ Mejorar a Pro — $12/mes</button>
+            <button class="btn-billing-portal" id="btn-billing-portal" onclick="openBillingPortal()">⚙ Gestionar facturación</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
   </div>
 
-  <!-- ── QUOTE MODAL ───────────────────────────────── -->
+  <!-- ── QUOTE MODAL ────────────────────────────────── -->
   <div id="quote-modal" class="modal-overlay hidden">
     <div class="modal-card">
       <div class="modal-title">Confirmar análisis</div>
@@ -654,39 +763,42 @@
     </div>
   </div>
 
-  <!-- ── PLANES MODAL ──────────────────────────────── -->
+  <!-- ── PLANES MODAL ───────────────────────────────── -->
   <div id="plans-modal" class="modal-overlay hidden" onclick="closePlansModalOutside(event)">
     <div class="plans-modal-card">
       <div class="plans-modal-title">Planes de GolaClips</div>
-      <div class="plans-modal-sub">Elegí el plan que mejor se adapta a vos</div>
+      <div class="plans-modal-sub">Elegí el plan que mejor se adapta a lo que necesitás</div>
 
       <div class="plans-grid">
-        <!-- Free -->
         <div class="plan-card">
           <div class="plan-card-name">Free</div>
           <div class="plan-card-price">$0 <span>/ mes</span></div>
-          <div class="plan-feature"><span class="check">✓</span> 30 créditos / mes</div>
-          <div class="plan-feature"><span class="check">✓</span> 1 crédito = 1 minuto de video</div>
-          <div class="plan-feature"><span class="check">✓</span> Clips se guardan 3 días</div>
-          <div class="plan-feature" style="color:var(--text-dim)"><span style="color:var(--text-dim)">✗</span> Marca de agua en clips</div>
+          <div class="plan-feature"><span class="ck">✓</span> 30 créditos / mes</div>
+          <div class="plan-feature"><span class="ck">✓</span> 1 crédito = 1 min de video</div>
+          <div class="plan-feature"><span class="ck">✓</span> Clips guardados 3 días</div>
+          <div class="plan-feature" style="color:var(--text-dim)">
+            <span class="ck-no">✗</span> Marca de agua en clips
+          </div>
         </div>
-
-        <!-- Pro -->
         <div class="plan-card highlighted">
           <div class="plan-card-name">Pro</div>
           <div class="plan-card-price">$12 <span>/ mes</span></div>
-          <div class="plan-feature"><span class="check-pro">✓</span> 200 créditos / mes</div>
-          <div class="plan-feature"><span class="check-pro">✓</span> 1 crédito = 1 minuto de video</div>
-          <div class="plan-feature"><span class="check-pro">✓</span> Clips se guardan 30 días</div>
-          <div class="plan-feature"><span class="check-pro">✓</span> Sin marca de agua</div>
+          <div class="plan-feature"><span class="ck-pro">✓</span> 200 créditos / mes</div>
+          <div class="plan-feature"><span class="ck-pro">✓</span> 1 crédito = 1 min de video</div>
+          <div class="plan-feature"><span class="ck-pro">✓</span> Clips guardados 30 días</div>
+          <div class="plan-feature"><span class="ck-pro">✓</span> Sin marca de agua</div>
         </div>
       </div>
 
+      <div id="plans-billing-warn" class="plans-billing-warn" role="alert"></div>
+
+      <button class="btn-subscribe-modal" id="btn-subscribe-modal" onclick="subscribeToPro()">
+        Suscribirme a Pro — $12/mes
+      </button>
       <div class="plans-note">
         Los créditos se resetean el 1° de cada mes y no se acumulan.<br>
-        Para activar Pro, contactanos por email.
+        Cancelá cuando quieras desde tu cuenta de Stripe.
       </div>
-
       <button class="btn-close-plans" onclick="closePlansModal()">Cerrar</button>
     </div>
   </div>

@@ -21,6 +21,15 @@ from auth import get_current_user
 
 load_dotenv()
 
+# When true, POST /api/billing/dev-upgrade-pro upgrades to Pro without Stripe (local/demo only).
+# Never active when ENVIRONMENT is production — even if GOLACLIPS_DEV_PRO_UPGRADE is mis-set.
+def _dev_pro_upgrade_enabled() -> bool:
+    env = os.getenv("ENVIRONMENT", "").strip().lower()
+    if env in ("production", "prod"):
+        return False
+    return os.getenv("GOLACLIPS_DEV_PRO_UPGRADE", "").strip().lower() in ("1", "true", "yes")
+
+
 # Plan definitions: credits in minutes, expiry in days
 PLAN_CREDITS = {"free": 30, "pro": 200}
 PLAN_EXPIRY_DAYS = {"free": 3, "pro": 30}
@@ -387,25 +396,160 @@ async def quote_video(duration_seconds: float, current_user: dict = Depends(get_
     }
 
 
-@app.post("/api/stripe/checkout")
-async def create_checkout(body: dict, current_user: dict = Depends(get_current_user)):
-    """Placeholder — Stripe subscription integration coming soon."""
-    raise HTTPException(status_code=501, detail="Pagos por suscripción próximamente.")
+@app.get("/api/billing/status")
+async def billing_status():
+    """Whether Checkout can run (env configured). No secrets exposed."""
+    price_id = os.getenv("STRIPE_PRO_PRICE_ID", "").strip()
+    secret = os.getenv("STRIPE_SECRET_KEY", "").strip()
+    missing = []
+    if not secret:
+        missing.append("STRIPE_SECRET_KEY")
+    if not price_id:
+        missing.append("STRIPE_PRO_PRICE_ID")
+    return {
+        "checkout_available": bool(price_id and secret),
+        "missing_env": missing,
+        "dev_pro_upgrade_enabled": _dev_pro_upgrade_enabled(),
+    }
+
+
+@app.post("/api/billing/dev-upgrade-pro")
+async def dev_upgrade_pro(current_user: dict = Depends(get_current_user)):
+    """Upgrade current user to Pro without payment — only if GOLACLIPS_DEV_PRO_UPGRADE=1."""
+    if not _dev_pro_upgrade_enabled():
+        raise HTTPException(
+            status_code=403,
+            detail="El upgrade de prueba está desactivado en el servidor.",
+        )
+    if current_user.get("plan") == "pro":
+        raise HTTPException(status_code=400, detail="Ya tenés el plan Pro activo.")
+    await run_in_threadpool(
+        database.update_user_plan, current_user["id"], "pro", None, None
+    )
+    return {"ok": True}
+
+
+@app.post("/api/stripe/portal")
+async def create_billing_portal(current_user: dict = Depends(get_current_user)):
+    """Create a Stripe Customer Portal session so the user can manage or cancel their subscription."""
+    if not stripe.api_key:
+        raise HTTPException(status_code=503, detail="Stripe no configurado.")
+
+    customer_id = current_user.get("stripe_customer_id")
+    if not customer_id:
+        raise HTTPException(
+            status_code=400,
+            detail="No encontramos una suscripción activa asociada a tu cuenta."
+        )
+
+    base_url = os.getenv("APP_URL", "http://127.0.0.1:8000")
+    try:
+        session = stripe.billing_portal.Session.create(
+            customer=customer_id,
+            return_url=f"{base_url}/app.html",
+        )
+    except stripe.error.StripeError as e:
+        msg = getattr(e, "user_message", None) or str(e) or "Error de Stripe al abrir el portal."
+        raise HTTPException(status_code=502, detail=msg)
+
+    return {"portal_url": session.url}
+
+
+@app.post("/api/stripe/subscribe")
+async def create_subscription(current_user: dict = Depends(get_current_user)):
+    """Create a Stripe Checkout session for the Pro monthly subscription."""
+    price_id = os.getenv("STRIPE_PRO_PRICE_ID", "")
+    if not price_id:
+        raise HTTPException(status_code=503, detail="Pagos no configurados aún.")
+    if not stripe.api_key:
+        raise HTTPException(status_code=503, detail="Stripe no configurado.")
+
+    if current_user.get("plan") == "pro":
+        raise HTTPException(status_code=400, detail="Ya tenés el plan Pro activo.")
+
+    base_url = os.getenv("APP_URL", "http://127.0.0.1:8000")
+    customer_id = current_user.get("stripe_customer_id") or None
+
+    session_params = {
+        "payment_method_types": ["card"],
+        "line_items": [{"price": price_id, "quantity": 1}],
+        "mode": "subscription",
+        "success_url": f"{base_url}/app.html?upgraded=1",
+        "cancel_url": f"{base_url}/app.html?upgraded=0",
+        "metadata": {"user_id": str(current_user["id"])},
+    }
+    if customer_id:
+        session_params["customer"] = customer_id
+    else:
+        session_params["customer_email"] = current_user.get("email", "")
+
+    try:
+        session = stripe.checkout.Session.create(**session_params)
+    except stripe.error.StripeError as e:
+        # User-facing message from Stripe when price/key is invalid
+        msg = getattr(e, "user_message", None) or str(e) or "Error de Stripe al crear el checkout."
+        raise HTTPException(status_code=502, detail=msg)
+    return {"checkout_url": session.url}
 
 
 @app.post("/api/stripe/webhook")
 async def stripe_webhook(request: Request):
-    """Placeholder — Stripe webhook integration coming soon."""
+    """Handle Stripe subscription lifecycle events."""
+    payload = await request.body()
+    sig_header = request.headers.get("stripe-signature", "")
+    webhook_secret = os.getenv("STRIPE_WEBHOOK_SECRET", "")
+
+    try:
+        event = stripe.Webhook.construct_event(payload, sig_header, webhook_secret)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid webhook signature")
+
+    event_type = event["type"]
+    obj = event["data"]["object"]
+
+    if event_type == "checkout.session.completed" and obj.get("mode") == "subscription":
+        # Subscription purchased — upgrade user to Pro
+        user_id = int(obj.get("metadata", {}).get("user_id", 0))
+        customer_id = obj.get("customer")
+        subscription_id = obj.get("subscription")
+        if user_id:
+            await run_in_threadpool(
+                database.update_user_plan, user_id, "pro", customer_id, subscription_id
+            )
+
+    elif event_type in ("customer.subscription.deleted", "customer.subscription.updated"):
+        # Subscription cancelled or changed — check status
+        status = obj.get("status", "")
+        customer_id = obj.get("customer")
+        if status in ("canceled", "unpaid", "past_due") and customer_id:
+            user = await run_in_threadpool(
+                database.get_user_by_stripe_customer_id, customer_id
+            )
+            if user:
+                await run_in_threadpool(
+                    database.update_user_plan, user["id"], "free", None, None
+                )
+
     return {"ok": True}
 
 
 @app.get("/health")
 async def health():
+    price_id = os.getenv("STRIPE_PRO_PRICE_ID", "").strip()
+    stripe_secret = os.getenv("STRIPE_SECRET_KEY", "").strip()
+    missing_stripe = []
+    if not stripe_secret:
+        missing_stripe.append("STRIPE_SECRET_KEY")
+    if not price_id:
+        missing_stripe.append("STRIPE_PRO_PRICE_ID")
     return {
         "ok": True,
         "gemini_key_configured": bool(os.getenv("GEMINI_API_KEY")),
         "firebase_configured": bool(os.getenv("FIREBASE_SERVICE_ACCOUNT_JSON")),
         "r2_configured": storage.is_configured(),
+        "stripe_checkout_ready": bool(price_id and stripe_secret),
+        "stripe_missing_env": missing_stripe,
+        "dev_pro_upgrade_enabled": _dev_pro_upgrade_enabled(),
     }
 
 
