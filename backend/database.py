@@ -148,6 +148,7 @@ def _apply_migrations():
         "ALTER TABLE users ADD COLUMN stripe_customer_id TEXT",
         "ALTER TABLE users ADD COLUMN stripe_subscription_id TEXT",
         "ALTER TABLE jobs ADD COLUMN credits_used INTEGER",
+        "ALTER TABLE jobs ADD COLUMN custom_name TEXT",
     ]
     with _conn() as cur:
         for sql in migrations:
@@ -338,6 +339,45 @@ def get_job_with_clips(job_id: str):
         )
         job["clips"] = _rows(cur)
         return job
+
+
+def update_user_plan(user_id: int, plan: str,
+                     stripe_customer_id: str = None,
+                     stripe_subscription_id: str = None):
+    """Update user plan and optional Stripe identifiers. Also resets credits to new plan total."""
+    total = PLAN_CREDITS.get(plan, 30)
+    next_reset = _next_reset_date()
+    with _conn() as cur:
+        cur.execute(f"""
+            UPDATE users
+            SET plan = {PH},
+                credits_remaining = {PH},
+                credits_reset_date = {PH},
+                stripe_customer_id = COALESCE({PH}, stripe_customer_id),
+                stripe_subscription_id = COALESCE({PH}, stripe_subscription_id)
+            WHERE id = {PH}
+        """, (plan, total, next_reset.isoformat(),
+              stripe_customer_id, stripe_subscription_id, user_id))
+
+
+def get_user_by_stripe_customer_id(stripe_customer_id: str):
+    """Return user dict for a given Stripe customer ID, or None."""
+    with _conn() as cur:
+        cur.execute(
+            f"SELECT * FROM users WHERE stripe_customer_id = {PH}",
+            (stripe_customer_id,)
+        )
+        return _row(cur)
+
+
+def update_job_name(job_id: str, user_id: int, name: str) -> bool:
+    """Rename a job. Returns True if the row was found and updated."""
+    with _conn() as cur:
+        cur.execute(
+            f"UPDATE jobs SET custom_name = {PH} WHERE id = {PH} AND user_id = {PH}",
+            (name, job_id, user_id)
+        )
+        return cur.rowcount > 0
 
 
 def delete_expired_jobs() -> list:

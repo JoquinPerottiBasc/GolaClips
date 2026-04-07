@@ -13,6 +13,7 @@ from fastapi.concurrency import run_in_threadpool
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
+from starlette.middleware.base import BaseHTTPMiddleware
 
 from processor import process_video, CLIPS_DIR, get_video_duration, cut_clip
 import database
@@ -49,6 +50,10 @@ class ExtendRequest(BaseModel):
     add_end: float = 0.0
 
 
+class RenameJobRequest(BaseModel):
+    name: str
+
+
 async def _cleanup_expired_loop():
     """Delete expired clips from R2 and DB every 24 hours."""
     while True:
@@ -81,6 +86,20 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="GolaClips API", lifespan=lifespan)
 
+
+class _NoCacheMiddleware(BaseHTTPMiddleware):
+    """Prevent browsers from caching HTML/JS/CSS so changes are always picked up."""
+    async def dispatch(self, request: Request, call_next):
+        response = await call_next(request)
+        path = request.url.path
+        if path.endswith((".html", ".js", ".css")) or path in ("/", ""):
+            response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+            response.headers["Pragma"] = "no-cache"
+            response.headers["Expires"] = "0"
+        return response
+
+
+app.add_middleware(_NoCacheMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -355,11 +374,25 @@ async def get_history(current_user: dict = Depends(get_current_user)):
         result.append({
             "job_id": job["id"],
             "original_filename": job["original_filename"],
+            "custom_name": job.get("custom_name") or None,
             "created_at": job["created_at"],
             "expires_at": job["expires_at"],
             "clips": clips,
         })
     return result
+
+
+@app.patch("/api/jobs/{job_id}/name")
+async def rename_job(job_id: str, body: RenameJobRequest,
+                     current_user: dict = Depends(get_current_user)):
+    """Rename a job. Only the owner can rename their own jobs."""
+    name = body.name.strip()[:120]
+    if not name:
+        raise HTTPException(status_code=400, detail="El nombre no puede estar vacío.")
+    updated = await run_in_threadpool(database.update_job_name, job_id, current_user["id"], name)
+    if not updated:
+        raise HTTPException(status_code=404, detail="Job no encontrado.")
+    return {"ok": True, "name": name}
 
 
 @app.get("/api/me/credits")

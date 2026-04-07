@@ -1169,3 +1169,83 @@ header h1 {
   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
   gap: 1rem;
 }
+
+/* Editable job name */
+.history-name-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+}
+.history-filename {
+  font-size: 0.875rem;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+  border-radius: 4px;
+  padding: 1px 3px;
+  margin: -1px -3px;
+  transition: background 0.15s;
+}
+.history-filename:hover { background: rgba(255,255,255,0.07); }
+.btn-rename-icon {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  padding: 2px;
+  cursor: pointer;
+  color: var(--text-dim);
+  line-height: 1;
+  border-radius: 4px;
+  transition: color 0.15s;
+  opacity: 0;
+}
+.history-card-header:hover .btn-rename-icon { opacity: 1; }
+.btn-rename-icon:hover { color: var(--accent); }
+.history-name-input {
+  font-size: 0.875rem;
+  font-weight: 600;
+  font-family: inherit;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  color: var(--text);
+  padding: 2px 7px;
+  outline: none;
+  min-width: 0;
+  width: 100%;
+}
+
+/* Expired info tooltip */
+.expiry-info-icon {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  cursor: default;
+  color: var(--text-dim);
+  font-size: 0.85rem;
+  line-height: 1;
+}
+.expiry-info-icon svg { display: block; }
+.expiry-tooltip {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 7px);
+  background: #1e1e2e;
+  border: 1px solid var(--border-hover);
+  border-radius: 9px;
+  padding: 0.6rem 0.8rem;
+  font-size: 0.74rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+  width: 220px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s;
+  z-index: 50;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+  white-space: normal;
+}
+.expiry-info-icon:hover .expiry-tooltip { opacity: 1; }

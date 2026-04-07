@@ -140,24 +140,49 @@ async function loadHistory() {
   }
 }
 
+function escapeHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
 function renderHistoryJob(job) {
-  const date = new Date(job.created_at + 'Z').toLocaleDateString('es-AR', {
-    day: '2-digit', month: '2-digit', year: 'numeric',
+  const uploadDate = new Date(job.created_at + 'Z').toLocaleDateString('es-AR', {
+    day: '2-digit', month: 'long', year: 'numeric',
   });
   const expires = new Date(job.expires_at + 'Z');
   const expired = expires < new Date();
+  const expiresStr = expires.toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' });
+  const displayName = job.custom_name || job.original_filename;
 
   const card = document.createElement('div');
   card.className = 'history-card';
+  card.dataset.jobId = job.job_id;
   card.innerHTML = `
     <div class="history-card-header">
       <div class="history-card-meta">
-        <span class="history-filename">${job.original_filename}</span>
-        <span class="history-date">${date}</span>
+        <div class="history-name-wrap">
+          <span class="history-filename" title="Click para renombrar" onclick="startRename(this, '${job.job_id}')">${escapeHtml(displayName)}</span>
+          <button class="btn-rename-icon" title="Renombrar" onclick="startRename(this.previousElementSibling, '${job.job_id}')">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+            </svg>
+          </button>
+        </div>
+        <span class="history-date">Subido el ${uploadDate}</span>
       </div>
       <div class="history-card-right">
         ${expired
-          ? '<span class="history-badge expired">Expirado</span>'
+          ? `<span class="history-badge expired">Expirado</span>
+             <span class="expiry-info-icon">
+               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                 <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+               </svg>
+               <div class="expiry-tooltip">Los clips expiraron el ${expiresStr}. Una vez expirados no se pueden recuperar. El plan Free guarda clips por 3 días, el plan Pro por 30 días.</div>
+             </span>`
           : `<span class="history-badge">${job.clips.length} clip${job.clips.length !== 1 ? 's' : ''}</span>`
         }
         ${!expired ? `<button class="history-toggle-btn" onclick="toggleHistoryClips(this)">Ver clips</button>` : ''}
@@ -195,6 +220,52 @@ function toggleHistoryClips(btn) {
   const grid = btn.closest('.history-card').querySelector('.history-clips-grid');
   const open = grid.classList.toggle('hidden');
   btn.textContent = open ? 'Ver clips' : 'Ocultar';
+}
+
+function startRename(nameEl, jobId) {
+  if (nameEl.tagName === 'INPUT') return;
+  const currentName = nameEl.textContent;
+  const input = document.createElement('input');
+  input.className = 'history-name-input';
+  input.value = currentName;
+  nameEl.replaceWith(input);
+  input.focus();
+  input.select();
+
+  async function saveRename() {
+    const newName = input.value.trim();
+    if (!newName || newName === currentName) {
+      input.replaceWith(createNameSpan(currentName, jobId));
+      return;
+    }
+    try {
+      const token = await getToken();
+      const res = await fetch(`${API_BASE}/api/jobs/${jobId}/name`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ name: newName }),
+      });
+      const data = await res.json().catch(() => ({}));
+      input.replaceWith(createNameSpan(res.ok ? (data.name || newName) : currentName, jobId));
+    } catch (_) {
+      input.replaceWith(createNameSpan(currentName, jobId));
+    }
+  }
+
+  input.addEventListener('blur', saveRename);
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); input.blur(); }
+    if (e.key === 'Escape') { input.removeEventListener('blur', saveRename); input.replaceWith(createNameSpan(currentName, jobId)); }
+  });
+}
+
+function createNameSpan(name, jobId) {
+  const span = document.createElement('span');
+  span.className = 'history-filename';
+  span.title = 'Click para renombrar';
+  span.textContent = name;
+  span.onclick = () => startRename(span, jobId);
+  return span;
 }
 
 // --- Drag & drop ---
