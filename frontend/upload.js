@@ -359,7 +359,7 @@ function updateCreditsDisplay(data) {
   }
   const billingPortalBtn = document.getElementById('btn-billing-portal');
   if (billingPortalBtn) {
-    billingPortalBtn.style.display = isPro ? '' : 'none';
+    billingPortalBtn.style.display = isPro ? 'block' : 'none';
   }
 
   const subscribeBtn = document.getElementById('btn-subscribe-modal');
