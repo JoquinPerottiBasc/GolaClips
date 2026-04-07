@@ -10,15 +10,17 @@ Esta es la primera versión. Vamos a ir agregando funcionalidades de forma incre
 - Backend: Python + FastAPI + FFmpeg + Google Gemini API
 - Auth: Firebase Auth (Google OAuth) + firebase-admin en backend
 - Storage: Cloudflare R2 (boto3)
-- DB: SQLite (golaclips.db) — migración a PostgreSQL pendiente
+- DB: SQLite local / PostgreSQL en producción (DATABASE_URL env var activa psycopg2)
+- Pagos: Stripe Checkout (suscripción mensual) — ya implementado, solo falta configurar las env vars
 
 ## Modelo de negocio
 - Sistema de CRÉDITOS: 1 crédito = 1 minuto de video (redondeado hacia arriba)
 - Plan Free: 30 créditos/mes, clips con marca de agua "GolaClips" (FFmpeg drawtext), clips se borran a los 3 días
 - Plan Pro: 200 créditos/mes ($12/mes), sin marca de agua, clips se borran a los 30 días
 - Créditos se resetean el 1° de cada mes — NO se acumulan, siempre vuelven al total del plan
-- Upgrade a Pro: por ahora se hace manualmente cambiando `plan = 'pro'` en la DB
-- Stripe: columnas reservadas en DB pero integración pendiente
+- Upgrade a Pro: via Stripe Checkout (`POST /api/stripe/subscribe` → redirige a Stripe)
+- Webhook Stripe (`POST /api/stripe/webhook`): activa Pro al pagar, vuelve a Free si cancela
+- Dev bypass: `GOLACLIPS_DEV_PRO_UPGRADE=1` en .env activa upgrade sin tarjeta (solo si ENVIRONMENT != production)
 
 ## Reglas de código
 - Comentarios en el código: siempre en inglés

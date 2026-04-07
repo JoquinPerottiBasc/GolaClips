@@ -13,7 +13,6 @@ from fastapi.concurrency import run_in_threadpool
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
-from starlette.middleware.base import BaseHTTPMiddleware
 
 from processor import process_video, CLIPS_DIR, get_video_duration, cut_clip
 import database
@@ -87,19 +86,6 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="GolaClips API", lifespan=lifespan)
 
 
-class _NoCacheMiddleware(BaseHTTPMiddleware):
-    """Prevent browsers from caching HTML/JS/CSS so changes are always picked up."""
-    async def dispatch(self, request: Request, call_next):
-        response = await call_next(request)
-        path = request.url.path
-        if path.endswith((".html", ".js", ".css")) or path in ("/", ""):
-            response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
-            response.headers["Pragma"] = "no-cache"
-            response.headers["Expires"] = "0"
-        return response
-
-
-app.add_middleware(_NoCacheMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
