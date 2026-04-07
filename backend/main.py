@@ -456,10 +456,12 @@ async def create_billing_portal(current_user: dict = Depends(get_current_user)):
 
     customer_id = current_user.get("stripe_customer_id")
     if not customer_id:
-        raise HTTPException(
-            status_code=400,
-            detail="No encontramos una suscripción activa asociada a tu cuenta."
+        # User upgraded via dev mode or manual DB edit — no Stripe subscription exists.
+        # Downgrade them directly to free so they can "cancel" without needing Stripe.
+        await run_in_threadpool(
+            database.update_user_plan, current_user["id"], "free", None, None
         )
+        return {"portal_url": None, "downgraded_directly": True}
 
     base_url = os.getenv("APP_URL", "http://127.0.0.1:8000")
     try:

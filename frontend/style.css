@@ -1082,7 +1082,6 @@ header h1 {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 14px;
-  overflow: hidden;
   transition: border-color 0.2s;
 }
 
@@ -1168,6 +1167,8 @@ header h1 {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
   gap: 1rem;
+  border-radius: 0 0 14px 14px;
+  overflow: hidden;
 }
 
 /* Editable job name */
@@ -1230,9 +1231,7 @@ header h1 {
 }
 .expiry-info-icon svg { display: block; }
 .expiry-tooltip {
-  position: absolute;
-  right: 0;
-  top: calc(100% + 7px);
+  position: fixed;
   background: #1e1e2e;
   border: 1px solid var(--border-hover);
   border-radius: 9px;
@@ -1243,9 +1242,13 @@ header h1 {
   width: 220px;
   pointer-events: none;
   opacity: 0;
-  transition: opacity 0.15s;
-  z-index: 50;
+  visibility: hidden;
+  transition: opacity 0.15s, visibility 0.15s;
+  z-index: 9999;
   box-shadow: 0 8px 24px rgba(0,0,0,0.5);
   white-space: normal;
 }
-.expiry-info-icon:hover .expiry-tooltip { opacity: 1; }
+.expiry-info-icon:hover .expiry-tooltip {
+  opacity: 1;
+  visibility: visible;
+}

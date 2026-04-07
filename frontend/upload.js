@@ -51,6 +51,32 @@ let _billingStatus = {
   dev_upgrade_available: false,
 };
 
+// --- Global tooltip for expiry info icons ---
+const _expiryTooltipEl = document.createElement('div');
+_expiryTooltipEl.className = 'expiry-tooltip';
+document.body.appendChild(_expiryTooltipEl);
+
+document.addEventListener('mouseover', (e) => {
+  const icon = e.target.closest('.expiry-info-icon');
+  if (!icon) return;
+  const text = icon.dataset.expiryText || '';
+  _expiryTooltipEl.textContent = text;
+  const rect = icon.getBoundingClientRect();
+  const ttWidth = 220;
+  let left = rect.right - ttWidth;
+  if (left < 8) left = 8;
+  _expiryTooltipEl.style.top = (rect.bottom + 8) + 'px';
+  _expiryTooltipEl.style.left = left + 'px';
+  _expiryTooltipEl.style.opacity = '1';
+  _expiryTooltipEl.style.visibility = 'visible';
+});
+document.addEventListener('mouseout', (e) => {
+  if (e.target.closest('.expiry-info-icon')) {
+    _expiryTooltipEl.style.opacity = '0';
+    _expiryTooltipEl.style.visibility = 'hidden';
+  }
+});
+
 // Version counter per clip for cache-busting after extend
 const _clipVersions = {};
 function getClipVersion(jobId, filename) {
@@ -177,11 +203,10 @@ function renderHistoryJob(job) {
       <div class="history-card-right">
         ${expired
           ? `<span class="history-badge expired">Expirado</span>
-             <span class="expiry-info-icon">
+             <span class="expiry-info-icon" data-expiry-text="Los clips expiraron el ${expiresStr}. Una vez expirados no se pueden recuperar. Plan Free: 3 días · Plan Pro: 30 días.">
                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                  <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
                </svg>
-               <div class="expiry-tooltip">Los clips expiraron el ${expiresStr}. Una vez expirados no se pueden recuperar. El plan Free guarda clips por 3 días, el plan Pro por 30 días.</div>
              </span>`
           : `<span class="history-badge">${job.clips.length} clip${job.clips.length !== 1 ? 's' : ''}</span>`
         }
@@ -543,7 +568,7 @@ async function subscribeToPro() {
 
 async function openBillingPortal() {
   const btn = document.getElementById('btn-billing-portal');
-  if (btn) { btn.disabled = true; btn.textContent = 'Abriendo portal...'; }
+  if (btn) { btn.disabled = true; btn.textContent = 'Procesando...'; }
   try {
     const token = await getToken();
     if (!token) { window.location.href = 'login.html'; return; }
@@ -553,6 +578,21 @@ async function openBillingPortal() {
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(parseApiErrorDetail(data));
+    // No stripe_customer_id — was a dev/manual upgrade, already downgraded server-side
+    if (data.downgraded_directly) {
+      const credRes = await fetch(`${API_BASE}/api/me/credits`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (credRes.ok) updateCreditsDisplay(await credRes.json());
+      const toast = document.getElementById('upgrade-toast');
+      if (toast) {
+        toast.className = 'upgrade-toast cancelled';
+        toast.innerHTML = '<span>ℹ</span><span>Plan cancelado. Volviste al plan Free.</span>';
+        toast.style.display = '';
+        setTimeout(() => { toast.style.display = 'none'; }, 6000);
+      }
+      return;
+    }
     if (!data.portal_url) throw new Error('Stripe no devolvió URL del portal.');
     window.location.href = data.portal_url;
   } catch (err) {
