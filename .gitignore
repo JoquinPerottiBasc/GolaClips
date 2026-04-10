@@ -1,6 +1,10 @@
 # Claude Code local settings
 .claude/
 
+# MCP config (contains API keys)
+.mcp.json
+skills-lock.json
+
 # Environment variables (contain API keys)
 .env
 
