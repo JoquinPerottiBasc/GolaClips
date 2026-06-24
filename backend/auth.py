@@ -52,9 +52,9 @@ async def get_current_user(authorization: str = Header(None)) -> dict:
         name=decoded.get("name", ""),
         avatar_url=decoded.get("picture", ""),
     )
-    # Apply monthly free credits on every login (DB check prevents more than once/month)
+    # Reset monthly credits on login if the reset date has passed (no-op otherwise)
     try:
-        database.apply_monthly_free_credits(user["id"])
+        database.check_and_reset_if_needed(user["id"])
     except Exception:
         pass
     return user

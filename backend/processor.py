@@ -28,7 +28,7 @@ def get_video_duration(video_path: str) -> float:
 
 
 def compress_video_for_analysis(video_path: str, output_path: str):
-    """Scale video down to 720p for faster Gemini upload and analysis."""
+    """Scale video down to 360p for faster Gemini upload and analysis."""
     subprocess.run(
         [
             "ffmpeg", "-y",
@@ -107,7 +107,7 @@ def process_video(
 
     duration = get_video_duration(video_path)
 
-    # Compress to 720p so Gemini receives a smaller file (faster upload + analysis).
+    # Compress to 360p so Gemini receives a smaller file (faster upload + analysis).
     # Clips will still be cut from the original high-quality video.
     status_callback("compressing")
     compressed_path = str(Path(video_path).parent / f"{Path(video_path).stem}_compressed.mp4")

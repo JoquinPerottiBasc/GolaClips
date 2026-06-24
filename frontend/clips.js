@@ -18,7 +18,7 @@ if (!jobId) {
 
 const STATUS_MESSAGES = {
   queued: 'En cola...',
-  compressing: 'Comprimiendo video a 720p...',
+  compressing: 'Comprimiendo video...',
   uploading_to_gemini: 'Subiendo video a Gemini...',
   gemini_processing: 'Gemini está procesando el video...',
   gemini_analyzing: 'Gemini detectando momentos emocionantes...',

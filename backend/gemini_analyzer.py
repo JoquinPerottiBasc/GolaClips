@@ -8,6 +8,7 @@ Flujo:
 4. Parsear y validar la respuesta
 """
 
+import os
 import re
 import json
 import time
@@ -18,7 +19,9 @@ from google.genai import types
 
 from prompts import build_detect_moments_prompt
 
-GEMINI_MODEL = "gemini-3.1-pro-preview"
+# Detection model. Override with GEMINI_MODEL in .env to A/B test other models.
+# gemini-3.5-flash: newer, faster and cheaper than 3.1-pro-preview, leads multimodal benchmarks.
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.5-flash")
 
 
 def _upload_and_wait(client: genai.Client, video_path: str, status_callback) -> types.File:

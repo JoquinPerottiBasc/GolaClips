@@ -601,11 +601,6 @@ async def serve_clips():
     return FileResponse(str(FRONTEND_DIR / "clips.html"), headers=_NO_CACHE)
 
 
-@app.get("/dashboard.html")
-async def serve_dashboard():
-    return FileResponse(str(FRONTEND_DIR / "dashboard.html"), headers=_NO_CACHE)
-
-
 @app.get("/index.html")
 async def serve_index_html():
     return FileResponse(str(FRONTEND_DIR / "index.html"), headers=_NO_CACHE)
